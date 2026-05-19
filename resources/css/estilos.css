@@ -1,0 +1,485 @@
+/* 
+   GYM IMPULSO - MODERN FITNESS UI
+   Paleta: #ffc107 (Amarillo), #0f172a (Negro), #ffffff (Blanco), #f8f9fa (Gris claro)
+*/
+
+:root {
+    --primary: #ffc107;
+    --primary-glow: rgba(255, 193, 7, 0.4);
+    --dark: #0f172a;
+    --dark-light: #1e293b;
+    --light: #f8f9fa;
+    --white: #ffffff;
+    --gray: #64748b;
+    --border-radius: 16px;
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--dark);
+    background-color: var(--white);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* --- UTILITIES --- */
+.text-primary { color: var(--primary) !important; }
+.bg-primary { background-color: var(--primary) !important; }
+.bg-dark-ui { background-color: var(--dark) !important; }
+.rounded-premium { border-radius: var(--border-radius); }
+
+/* --- ANIMATIONS --- */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.fade-up { animation: fadeInUp 0.6s ease forwards; }
+.fade-in-slow { animation: fadeIn 1s ease forwards; }
+
+/* Scroll reveal class */
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: var(--transition);
+}
+
+.reveal.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* --- NAVBAR --- */
+#mainNav {
+    transition: var(--transition);
+    padding: 1.25rem 0;
+    background: transparent;
+}
+
+#mainNav.scrolled {
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 0.75rem 0;
+    box-shadow: var(--shadow-md);
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    letter-spacing: -0.5px;
+}
+
+.nav-link {
+    font-weight: 500;
+    color: var(--white) !important;
+    padding: 0.5rem 1rem !important;
+    margin: 0 0.25rem;
+    transition: var(--transition);
+    opacity: 0.8;
+}
+
+.nav-link:hover {
+    opacity: 1;
+    color: var(--primary) !important;
+}
+
+.nav-link.active {
+    opacity: 1;
+    color: var(--primary) !important;
+}
+
+/* --- BUTTONS --- */
+.btn {
+    border-radius: 12px;
+    padding: 0.6rem 1.5rem;
+    font-weight: 600;
+    transition: var(--transition);
+    border: none;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: var(--dark);
+}
+
+.btn-primary:hover {
+    background-color: #e5ac00;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px var(--primary-glow);
+    color: var(--dark);
+}
+
+.btn-outline-primary {
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    background: transparent;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary);
+    color: var(--dark);
+    transform: translateY(-2px);
+}
+
+.btn-dark-ui {
+    background-color: var(--dark);
+    color: var(--white);
+}
+
+.btn-dark-ui:hover {
+    background-color: var(--dark-light);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* --- HERO --- */
+.hero-section {
+    height: 100vh;
+    overflow: hidden;
+}
+
+.hero-image {
+    height: 100vh;
+    object-fit: cover;
+    transform: scale(1.1);
+    transition: transform 10s ease;
+}
+
+.carousel-item.active .hero-image {
+    transform: scale(1);
+}
+
+.carousel-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(to bottom, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.4));
+}
+
+.hero-content {
+    max-width: 800px;
+    z-index: 10;
+}
+
+/* --- CARDS GLOBAL --- */
+.premium-card {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    overflow: hidden;
+}
+
+.premium-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* --- PLANES FITNESS --- */
+.plan-card {
+    position: relative;
+    border: 2px solid transparent;
+    transition: var(--transition);
+}
+
+.plan-card.popular {
+    border-color: var(--primary);
+    transform: scale(1.02);
+}
+
+.plan-card .price {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+.plan-details {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.5s cubic-bezier(0, 1, 0, 1);
+}
+
+.plan-details.show {
+    max-height: 1000px;
+    transition: max-height 1s ease-in-out;
+}
+
+/* --- ENTRENADORES --- */
+.trainer-card {
+    position: relative;
+    max-width: 280px;
+    margin: auto;
+}
+
+.trainer-img-wrapper {
+    height: 320px;
+    overflow: hidden;
+    border-radius: var(--border-radius);
+}
+
+.trainer-img-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: var(--transition);
+}
+
+.trainer-card:hover .trainer-img-wrapper img {
+    transform: scale(1.1);
+}
+
+.trainer-info-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 1.5rem;
+    background: linear-gradient(transparent, rgba(15, 23, 42, 0.9));
+    color: var(--white);
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+/* --- SHOP INNOVATIVE CARDS --- */
+.product-card {
+    transition: var(--transition);
+}
+
+.product-img-container {
+    height: 240px;
+    background: #f1f5f9;
+}
+
+.product-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-card:hover .product-img-container img {
+    transform: scale(1.1);
+}
+
+.product-actions {
+    transition: opacity 0.3s ease;
+    z-index: 2;
+}
+
+.product-card:hover .product-actions {
+    opacity: 1;
+}
+
+.transition-all {
+    transition: all 0.3s ease;
+}
+
+
+
+/* --- MAPA --- */
+.map-container {
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(0,0,0,0.05);
+    height: 450px;
+}
+
+.map-container iframe {
+    width: 100%;
+    height: 100%;
+    filter: grayscale(1) contrast(1.2) opacity(0.9);
+    transition: var(--transition);
+}
+
+.map-container:hover iframe {
+    filter: grayscale(0);
+}
+
+/* --- FORMS --- */
+.form-control, .form-select {
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    background-color: var(--light);
+    transition: var(--transition);
+}
+
+.form-control:focus {
+    background-color: var(--white);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-glow);
+}
+
+.form-label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    color: var(--dark);
+}
+
+/* --- CHECKOUT STEPS --- */
+.checkout-step {
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    background: var(--white);
+    transition: var(--transition);
+}
+
+.checkout-step.active {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+}
+
+.step-header {
+    padding: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.step-content {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    display: none;
+}
+
+.checkout-step.active .step-content {
+    display: block;
+}
+
+.step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    margin-right: 1rem;
+}
+
+.checkout-step.completed .step-number {
+    background: #10b981;
+    color: var(--white);
+}
+
+/* --- CART --- */
+.cart-item-premium {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.25rem;
+    background: var(--white);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.cart-item-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+/* --- FOOTER --- */
+footer {
+    background-color: var(--dark);
+    color: var(--white);
+}
+
+footer a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+footer a:hover {
+    color: var(--primary);
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 992px) {
+    .navbar-collapse {
+        background: var(--dark);
+        padding: 1rem;
+        border-radius: 12px;
+        margin-top: 1rem;
+    }
+}
+
+/* BOTON LUPA */
+
+.search-toggle-btn{
+    width: 65px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    background: #ffc107;
+    color: #0f172a;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.search-toggle-btn:hover{
+    transform: scale(1.08);
+    box-shadow: 0 10px 25px rgba(255,193,7,0.4);
+}
+
+/* MENU */
+
+.category-menu{
+    background: white;
+    border-radius: 1rem;
+    padding: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+
+/* BOTONES */
+
+.category-btn{
+    border: none;
+    background: #f8f9fa;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.category-btn:hover{
+    background: #ffc107;
+    transform: translateY(-3px);
+}
+
+.category-btn.active{
+    background: #ffc107;
+    color: black;
+}
