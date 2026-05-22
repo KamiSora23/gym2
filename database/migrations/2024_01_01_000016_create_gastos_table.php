@@ -13,8 +13,8 @@ return new class extends Migration
             $table->string('concepto');
             $table->decimal('monto', 10, 2);
             $table->date('fecha');
-            $table->unsignedBigInteger('id_usuario');
-            $table->foreign('id_usuario')->references('id_usuario')->on('users')->onDelete('cascade');
+            $table->unsignedBigInteger('user_id');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->timestamps();
         });
     }

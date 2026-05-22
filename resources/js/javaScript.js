@@ -145,19 +145,22 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const renderCartPage = () => {
-        const container = document.getElementById('cartContainer');
-        if (!container) return;
+        const emptyCart = document.getElementById('emptyCart');
+        const cartItemsContainer = document.getElementById('cartItemsContainer');
+        const cartItemsList = document.getElementById('cartItemsList');
+        const cartSubtotal = document.getElementById('cartSubtotal');
+        const cartTotal = document.getElementById('cartTotal');
+
+        if (!emptyCart || !cartItemsContainer) return;
 
         if (cart.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-5">
-                    <i class="bi bi-bag-x display-1 text-muted mb-4"></i>
-                    <h3>Tu carrito está vacío</h3>
-                    <a href="shop.html" class="btn btn-primary mt-3">Ir a la tienda</a>
-                </div>
-            `;
+            emptyCart.style.display = 'block';
+            cartItemsContainer.style.display = 'none';
             return;
         }
+
+        emptyCart.style.display = 'none';
+        cartItemsContainer.style.display = 'block';
 
         let total = 0;
         const itemsHtml = cart.map(item => {
@@ -182,25 +185,9 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }).join('');
 
-        container.innerHTML = `
-            <div class="row g-4">
-                <div class="col-lg-8">${itemsHtml}</div>
-                <div class="col-lg-4">
-                    <div class="premium-card p-4 sticky-top" style="top: 100px;">
-                        <h5 class="fw-bold mb-4">Resumen</h5>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Subtotal</span>
-                            <span>$${total.toFixed(2)}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-4">
-                            <span class="fw-bold fs-5">Total</span>
-                            <span class="fw-bold fs-5 text-primary">$${total.toFixed(2)}</span>
-                        </div>
-                        <a href="checkout.html" class="btn btn-primary w-100 py-3">Pagar ahora</a>
-                    </div>
-                </div>
-            </div>
-        `;
+        cartItemsList.innerHTML = itemsHtml;
+        if (cartSubtotal) cartSubtotal.textContent = `$${total.toFixed(2)}`;
+        if (cartTotal) cartTotal.textContent = `$${total.toFixed(2)}`;
     };
 
     window.changeQty = (id, delta) => {
@@ -254,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 showToast('¡Cuenta creada! Bienvenida/o a la familia Impulso.');
                 // Here we would sync with the admin system in the future
-                window.location.href = 'login.html';
+                window.location.href = '/login';
             }, 2000);
         });
     }
@@ -270,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             setTimeout(() => {
                 showToast('¡Sesión iniciada con éxito!');
-                window.location.href = 'index.html';
+                window.location.href = '/';
             }, 1500);
         });
     }

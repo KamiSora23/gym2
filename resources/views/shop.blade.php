@@ -13,8 +13,14 @@
 <body>
     <header class="navbar navbar-expand-lg fixed-top scrolled" id="mainNav">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="{{ url('/') }}">
-                <span class="text-primary">GYM</span> <span class="text-white">IMPULSO</span>
+            <a class="navbar-brand fw-bold" href="#hero">
+                <span class="text-primary">
+                    {{ explode(' ', $config->nombre_gym)[0] ?? 'GYM' }}
+                </span>
+
+                <span class="text-white">
+                    {{ explode(' ', $config->nombre_gym)[1] ?? 'IMPULSO' }}
+                </span>
             </a>
             <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse"
                 data-bs-target="#navbarNav">
@@ -25,9 +31,7 @@
                     <li class="nav-item"><a class="nav-link" href="{{ url('/') }}#acercade">Nosotros</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url('/') }}#planes">Planes</a></li>
                     <li class="nav-item"><a class="nav-link active" href="{{ url('/shop') }}">Tienda</a></li>
-                    <li class="nav-item ms-lg-3">
-                        <a href="{{ url('/registro') }}" class="btn btn-primary px-4">Únete</a>
-                    </li>
+                    
                     <li class="nav-item ms-2">
                         <a href="{{ url('/carrito') }}" class="nav-link position-relative">
                             <i class="bi bi-bag fs-5"></i>
@@ -36,10 +40,60 @@
                                 id="cartCount">0</span>
                         </a>
                     </li>
-                    <li class="nav-item ms-2">
-                        <a href="{{ url('/login') }}" class="nav-link">
-                            <i class="bi bi-person-circle fs-5"></i>
-                        </a>
+                    <li class="nav-item ms-2">@auth
+                    
+                    <div class="dropdown">
+                        <button class="btn border-0 bg-transparent dropdown-toggle d-flex align-items-center gap-2"
+                                data-bs-toggle="dropdown">
+                    
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                                 style="width:40px;height:40px;font-weight:bold;">
+                    
+                                {{ strtoupper(substr(Auth::user()->name,0,1)) }}
+                    
+                            </div>
+                    
+                            <span class="fw-bold text-white">
+                                {{ Auth::user()->name }}
+                            </span>
+                        </button>
+                    
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                    
+                            <li>
+                                <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                    <i class="bi bi-person-circle me-2"></i>
+                                    Mi Perfil
+                                </a>
+                            </li>
+                    
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                    
+                            <li>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                    
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="bi bi-box-arrow-right me-2"></i>
+                                        Cerrar sesión
+                                    </button>
+                                </form>
+                            </li>
+                    
+                        </ul>
+                    </div>
+                    
+                    @else
+                    
+                    <a href="{{ route('login') }}"class="nav-link">
+                         <i class="bi bi-person-circle fs-5"></i>
+                    </a>
+                    
+                    @endauth
+                       
+                     
                     </li>
                 </ul>
             </div>

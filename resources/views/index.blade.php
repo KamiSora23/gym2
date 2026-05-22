@@ -15,7 +15,13 @@
     <header class="navbar navbar-expand-lg fixed-top" id="mainNav">
         <div class="container">
             <a class="navbar-brand fw-bold" href="#hero">
-                <span class="text-primary">GYM</span> <span class="text-white">IMPULSO</span>
+                <span class="text-primary">
+                    {{ explode(' ', $config->nombre_gym)[0] ?? 'GYM' }}
+                </span>
+
+                <span class="text-white">
+                    {{ explode(' ', $config->nombre_gym)[1] ?? 'IMPULSO' }}
+                </span>
             </a>
             <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse"
                 data-bs-target="#navbarNav">
@@ -27,9 +33,7 @@
                     <li class="nav-item"><a class="nav-link" href="#planes">Planes</a></li>
                     <li class="nav-item"><a class="nav-link" href="#entrenadores">Staff</a></li>
                     <li class="nav-item"><a class="nav-link" href="#tienda">Tienda</a></li>
-                    <li class="nav-item ms-lg-3">
-                        <a href="{{ url('/registro') }}" class="btn btn-primary px-4">Únete</a>
-                    </li>
+
                     <li class="nav-item ms-2">
                         <a href="{{ url('/carrito') }}" class="nav-link position-relative">
                             <i class="bi bi-bag fs-5"></i>
@@ -38,10 +42,60 @@
                                 id="cartCount">0</span>
                         </a>
                     </li>
-                    <li class="nav-item ms-2">
-                        <a href="{{ url('/login') }}" class="nav-link">
+                    <li class="nav-item ms-2">@auth
+
+                        <div class="dropdown">
+                            <button class="btn border-0 bg-transparent dropdown-toggle d-flex align-items-center gap-2"
+                                data-bs-toggle="dropdown">
+
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                                    style="width:40px;height:40px;font-weight:bold;">
+
+                                    {{ strtoupper(substr(Auth::user()->name,0,1)) }}
+
+                                </div>
+
+                                <span class="fw-bold text-white">
+                                    {{ Auth::user()->name }}
+                                </span>
+                            </button>
+
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                        <i class="bi bi-person-circle me-2"></i>
+                                        Mi Perfil
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+
+                                <li>
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="bi bi-box-arrow-right me-2"></i>
+                                            Cerrar sesión
+                                        </button>
+                                    </form>
+                                </li>
+
+                            </ul>
+                        </div>
+
+                        @else
+
+                        <a href="{{ route('login') }}" class="nav-link">
                             <i class="bi bi-person-circle fs-5"></i>
                         </a>
+
+                        @endauth
+
+
                     </li>
                 </ul>
             </div>
@@ -312,8 +366,8 @@
             <div class="text-center mt-5 reveal">
                 <a href="{{ url('/shop') }}" class="btn btn-outline-dark-ui px-5 py-3">Ver catálogo completo</a>
             </div>
-        
-        </section>
+
+    </section>
     </section>
     <section id="ubicacion" class="py-5 bg-light">
         <div class="container py-5">
@@ -344,40 +398,64 @@
                     </p>
 
                     <div class="d-flex align-items-center gap-3 mb-4">
-                        <div class="step-number bg-light"><i class="bi bi-geo-alt text-primary"></i></div>
+                        <div class="step-number bg-light">
+                            <i class="bi bi-geo-alt text-primary"></i>
+                        </div>
                         <div>
                             <h6 class="fw-bold mb-0 small">Dirección</h6>
-                            <p class="text-muted mb-0 small">Av. Principal 123, Lima</p>
-                        </div>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-3 mb-4">
-                        <div class="step-number bg-light"><i class="bi bi-envelope text-primary"></i></div>
-                        <div>
-                            <h6 class="fw-bold mb-0 small">Email</h6>
-                            <p class="text-muted mb-0 small">info@gymimpulso.com</p>
-                        </div>
-
-                    </div>
-
-                    <div class="d-flex align-items-center gap-3 mb-4">
-                        <div class="step-number bg-light"><i class="bi bi-envelope text-primary"></i></div>
-                        <div>
-                            <h6 class="fw-bold mb-0 small">Telefono</h6>
-                            <p class="text-muted mb-0 small">+51 961 179 515</p>
-                        </div>
-
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mb-4">
-                        <div class="step-number bg-light"><i class="bi bi-envelope text-primary"></i></div>
-                        <div>
-                            <h6 class="fw-bold mb-0 small">Horario</h6>
-                            <p class="text-m mb-0 small">Lun-Vie: 6:00 AM - 10:00 PM
-                            <p class="text-m mb-0">Sáb: 8:00 AM - 8:00 PM</p>
-                            <p class="text-m mb-0">Dom: 9:00 AM - 2:00 PM</p>
+                            <p class="text-muted mb-0 small">
+                                {{ $config->direccion ?? 'Av. Principal 123, Lima' }}
                             </p>
                         </div>
+                    </div>
 
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="step-number bg-light">
+                            <i class="bi bi-envelope text-primary"></i>
+                        </div>
+                        <div class="text-xs text-gray-400 break-all leading-4 max-w-[180px]>
+                            <h6 class=" fw-bold mb-0 small">Email</h6>
+                            <div class="text-xs text-gray-400 break-all leading-4 max-w-[180px]">
+                                <p class="text-muted mb-0 small ">
+                                    {{ $config->email ?? 'info@gymimpulso.com' }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="step-number bg-light">
+                            <i class="bi bi-telephone text-primary"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0 small">Teléfono</h6>
+                            <p class="text-muted mb-0 small">
+                                {{ $config->telefono ?? '+51 961 179 515' }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- HORARIO PROFESIONAL -->
+                    <div class="d-flex align-items-start gap-3 mb-4">
+                        <div class="step-number bg-light">
+                            <i class="bi bi-clock text-primary"></i>
+                        </div>
+
+                        <div>
+                            <h6 class="fw-bold mb-0 small">Horario</h6>
+
+                            <div class="text-muted small">
+
+                                <p>Lunes: {{ $config->horario_lunes ?? 'No definido' }}</p>
+                                <p>Martes: {{ $config->horario_martes ?? 'No definido' }}</p>
+                                <p>Miércoles: {{ $config->horario_miercoles ?? 'No definido' }}</p>
+                                <p>Jueves: {{ $config->horario_jueves ?? 'No definido' }}</p>
+                                <p>Viernes: {{ $config->horario_viernes ?? 'No definido' }}</p>
+                                <p>Sábado: {{ $config->horario_sabado ?? 'No definido' }}</p>
+                                <p>Domingo: {{ $config->horario_domingo ?? 'No definido' }}</p>
+
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -452,10 +530,24 @@
                 </div>
                 <div class="col-lg-3 col-md-4">
                     <h6 class="text-white fw-bold mb-4 small text-uppercase">Contacto</h6>
+
                     <ul class="list-unstyled text-white-50 small">
-                        <li class="mb-2"><i class="bi bi-geo-alt me-2"></i> Av. Principal 123</li>
-                        <li class="mb-2"><i class="bi bi-telephone me-2"></i> +1 (234) 567-8900</li>
-                        <li class="mb-2"><i class="bi bi-envelope me-2"></i> info@gymimpulso.com</li>
+
+                        <li class="mb-2">
+                            <i class="bi bi-geo-alt me-2"></i>
+                            {{ $config->direccion ?? 'Av. Principal 123' }}
+                        </li>
+
+                        <li class="mb-2">
+                            <i class="bi bi-telephone me-2"></i>
+                            {{ $config->telefono ?? '+1 (234) 567-8900' }}
+                        </li>
+
+                        <li class="mb-2">
+                            <i class="bi bi-envelope me-2"></i>
+                            {{ $config->email ?? 'info@gymimpulso.com' }}
+                        </li>
+
                     </ul>
                 </div>
             </div>

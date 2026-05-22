@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="text-center py-5">
                     <i class="bi bi-bag-x display-1 text-muted mb-4"></i>
                     <h3>Tu carrito está vacío</h3>
-                    <a href="shop.html" class="btn btn-primary mt-3">Ir a la tienda</a>
+                    <a href="/shop" class="btn btn-primary mt-3">Ir a la tienda</a>
                 </div>
             `;
             return;
@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span class="fw-bold fs-5">Total</span>
                             <span class="fw-bold fs-5 text-primary">$${total.toFixed(2)}</span>
                         </div>
-                        <a href="checkout.html" class="btn btn-primary w-100 py-3">Pagar ahora</a>
+                        <a href="/checkout" class="btn btn-primary w-100 py-3">Pagar ahora</a>
                     </div>
                 </div>
             </div>
