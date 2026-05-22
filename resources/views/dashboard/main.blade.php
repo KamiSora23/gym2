@@ -701,7 +701,23 @@
                     Configuración del Sistema
                 </h2>
 
-                <button type="submit" class="btn-primary">
+                <button type="submit"
+                    style="
+        background: linear-gradient(135deg, #ff4d4f, #ff7a7a);
+        color: white;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 8px 20px rgba(255, 77, 79, 0.25);
+        cursor: pointer;
+        transition: 0.3s;
+    "
+                    onmouseover="this.style.transform='scale(1.05)'"
+                    onmouseout="this.style.transform='scale(1)'">
                     <i class="fas fa-save"></i> Guardar Cambios
                 </button>
             </div>
