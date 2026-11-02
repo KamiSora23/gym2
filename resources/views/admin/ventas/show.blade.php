@@ -58,7 +58,7 @@
                             <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-check"></i> Marcar como pagada</button>
                         </form>
                     @endif
-                    @if (Auth::user()->isAdmin() || Auth::user()->hasRole('cajera'))
+                    @if (Auth::user()->permite('ventas.anular'))
                         <form method="POST" action="{{ route('ventas.anular', $venta) }}" style="flex:1;" data-confirm="¿Anular la venta {{ $venta->folio }}? Se devolverá el stock y se cancelará la membresía.">
                             @csrf @method('PATCH')
                             <button type="submit" class="btn btn-danger" style="width:100%;"><i class="fas fa-ban"></i> Anular venta</button>

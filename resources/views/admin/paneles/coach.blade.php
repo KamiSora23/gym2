@@ -2,7 +2,10 @@
     subtitulo="Hola, {{ strtok(Auth::user()->name, ' ') }}. Tus clases y alumnos de {{ \App\Support\Tenant::empresa()?->nombre }}.">
 
     <x-slot name="acciones">
-        <a href="{{ route('entrenamiento.index') }}" class="btn btn-primary"><i class="fas fa-calendar-week"></i> Mi horario</a>
+        @if ($perfil)
+            <a href="{{ route('entrenadores.disponibilidad', $perfil) }}" class="btn btn-light"><i class="fas fa-user-clock"></i> Mi disponibilidad</a>
+        @endif
+        <a href="{{ route('entrenamiento.index') }}" class="btn btn-primary"><i class="fas fa-calendar-plus"></i> Mis clases</a>
     </x-slot>
 
     @if (! $perfil)
@@ -48,7 +51,7 @@
                         <tbody>
                             @forelse ($alumnos as $al)
                                 <tr>
-                                    <td>{{ $al->nombre }}<div class="muted">{{ $al->telefono ?? '—' }}</div></td>
+                                    <td><a href="{{ route('clientes.show', $al) }}" style="font-weight:600; color:var(--text-dark); text-decoration:none;">{{ $al->nombre }}</a><div class="muted">{{ $al->telefono ?? '—' }} · <a href="{{ route('clientes.show', $al) }}">rutina y progreso</a></div></td>
                                     <td><span class="chip">{{ $al->id_entrenador === $perfil->id_entrenador ? 'Personal' : 'Clase grupal' }}</span></td>
                                     <td>
                                         @if ($al->membresiaActiva)

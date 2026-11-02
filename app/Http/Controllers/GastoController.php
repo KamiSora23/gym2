@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Gasto;
+use App\Support\Permisos;
 use App\Support\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,6 +39,8 @@ class GastoController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        Permisos::exigir('gastos.registrar');
+
         $datos = $request->validateWithBag('gasto', [
             'concepto' => ['required', 'string', 'max:255'],
             'categoria' => ['nullable', Rule::in(Gasto::CATEGORIAS)],
@@ -56,7 +59,7 @@ class GastoController extends Controller
 
     public function destroy(Request $request, Gasto $gasto): RedirectResponse
     {
-        abort_unless($request->user()->isAdmin(), 403);
+        Permisos::exigir('gastos.eliminar');
 
         $gasto->delete();
 

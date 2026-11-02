@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Permisos;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -83,6 +84,14 @@ class User extends Authenticatable
     public function isStaff(): bool
     {
         return $this->hasRole(...Role::STAFF);
+    }
+
+    /**
+     * ¿Puede realizar esta acción? Ver App\Support\Permisos::ACCIONES.
+     */
+    public function permite(string $accion): bool
+    {
+        return Permisos::permite($this, $accion);
     }
 
     public function isCliente(): bool

@@ -13,7 +13,9 @@ use App\Models\Inventario;
 use App\Models\Membresia;
 use App\Models\Plan;
 use App\Models\Producto;
+use App\Models\Progreso;
 use App\Models\Role;
+use App\Models\Rutina;
 use App\Models\Sucursal;
 use App\Models\TipoProducto;
 use App\Models\User;
@@ -50,6 +52,61 @@ class DemoSeeder extends Seeder
             'id_empresa' => $otra->id_empresa,
             'email_verified_at' => now(),
         ]);
+    }
+
+    /**
+     * Lun-Vie mañana y tarde, sábado por la mañana.
+     */
+    public static function disponibilidadDemo(Entrenador $coach): void
+    {
+        if ($coach->disponibilidad()->exists()) {
+            return;
+        }
+
+        foreach (range(1, 5) as $dia) {
+            $coach->disponibilidad()->create(['dia_semana' => $dia, 'hora_inicio' => '06:00', 'hora_fin' => '12:00']);
+            $coach->disponibilidad()->create(['dia_semana' => $dia, 'hora_inicio' => '16:00', 'hora_fin' => '21:00']);
+        }
+
+        $coach->disponibilidad()->create(['dia_semana' => 6, 'hora_inicio' => '08:00', 'hora_fin' => '13:00']);
+    }
+
+    public static function rutinaDemo(Cliente $cliente, Entrenador $coach): void
+    {
+        if (Rutina::withoutGlobalScopes()->where('id_cliente', $cliente->id_cliente)->exists()) {
+            return;
+        }
+
+        $rutina = Rutina::create([
+            'id_empresa' => $cliente->id_empresa,
+            'id_cliente' => $cliente->id_cliente,
+            'id_entrenador' => $coach->id_entrenador,
+            'nombre' => 'Fuerza e hipertrofia 3 días',
+            'objetivo' => 'Ganar masa muscular',
+            'notas' => 'Calentar 10 minutos. Prioriza la técnica antes que el peso.',
+            'activa' => true,
+        ]);
+
+        $ejercicios = [
+            ['Día 1 · Piernas', 'Sentadilla', 4, '8-10', '2 min'], ['Día 1 · Piernas', 'Prensa', 3, '12', '90 s'],
+            ['Día 2 · Empuje', 'Press banca', 4, '8-10', '2 min'], ['Día 2 · Empuje', 'Press militar', 3, '10', '90 s'],
+            ['Día 3 · Tirón', 'Dominadas', 4, '6-8', '2 min'], ['Día 3 · Tirón', 'Remo con barra', 3, '10', '90 s'],
+        ];
+
+        foreach ($ejercicios as $orden => [$dia, $nombre, $series, $reps, $descanso]) {
+            $rutina->ejercicios()->create(['dia' => $dia, 'ejercicio' => $nombre, 'series' => $series, 'repeticiones' => $reps, 'descanso' => $descanso, 'orden' => $orden]);
+        }
+
+        foreach ([[56, 82.4, 22.0], [28, 81.1, 21.2], [0, 79.8, 20.1]] as [$diasAtras, $peso, $grasa]) {
+            Progreso::create([
+                'id_empresa' => $cliente->id_empresa,
+                'id_cliente' => $cliente->id_cliente,
+                'id_entrenador' => $coach->id_entrenador,
+                'fecha' => today()->subDays($diasAtras),
+                'peso' => $peso,
+                'grasa' => $grasa,
+            ]);
+        }
     }
 
     private function poblar(Empresa $empresa, array $nombresSucursales): void
@@ -112,7 +169,8 @@ class DemoSeeder extends Seeder
             'id_sucursal' => $principal->id_sucursal,
             'email_verified_at' => now(),
         ]);
-        $coaches[0]->update(['user_id' => $usuarioCoach->id]);
+        $coaches[0]->update(['user_id' => $usuarioCoach->id, 'bio' => 'Coach certificado en entrenamiento funcional y crossfit.']);
+        static::disponibilidadDemo($coaches[0]);
 
         $clases = collect([
             ['Yoga', 1, '07:00', '08:00', 1], ['Spinning', 1, '19:00', '20:00', 2], ['Crossfit', 2, '18:00', '19:00', 0],
@@ -134,6 +192,10 @@ class DemoSeeder extends Seeder
             ]);
 
             $clases->random(2)->each(fn ($clase) => $clase->clientes()->syncWithoutDetaching([$cliente->id_cliente]));
+
+            if ($i === 0) {
+                static::rutinaDemo($cliente, $coaches[0]);
+            }
 
             if ($i < 6) {
                 $plan = $planes[$i % 3];

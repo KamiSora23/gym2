@@ -5,6 +5,7 @@
 
 <div class="form-grid cols-4">
     <div class="form-group"><label>Nombre *</label><input type="text" name="nombre" value="{{ $valor('nombre') }}" placeholder="Spinning" required></div>
+    @if ($conCoach ?? true)
     <div class="form-group">
         <label>Coach</label>
         <select name="id_entrenador">
@@ -14,6 +15,7 @@
             @endforeach
         </select>
     </div>
+    @endif
     <div class="form-group">
         <label>Día *</label>
         <select name="dia_semana" required>
@@ -25,7 +27,7 @@
     <div class="form-group"><label>Cupo *</label><input type="number" min="1" name="cupo" value="{{ $valor('cupo', 20) }}" required></div>
     <div class="form-group"><label>Inicio *</label><input type="time" name="hora_inicio" value="{{ $hora('hora_inicio', '07:00') }}" required></div>
     <div class="form-group"><label>Fin *</label><input type="time" name="hora_fin" value="{{ $hora('hora_fin', '08:00') }}" required></div>
-    @unless (\App\Support\Tenant::sucursalId())
+    @unless (\App\Support\Tenant::sucursalId() || ! ($conCoach ?? true))
         <div class="form-group">
             <label>Sucursal</label>
             <select name="id_sucursal">

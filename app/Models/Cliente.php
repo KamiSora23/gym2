@@ -51,6 +51,16 @@ class Cliente extends Model
         return $this->belongsToMany(Clase::class, 'clase_cliente', 'id_cliente', 'id_clase')->withTimestamps();
     }
 
+    public function rutinas()
+    {
+        return $this->hasMany(Rutina::class, 'id_cliente', 'id_cliente')->latest();
+    }
+
+    public function progresos()
+    {
+        return $this->hasMany(Progreso::class, 'id_cliente', 'id_cliente')->orderByDesc('fecha');
+    }
+
     public function ventas()
     {
         return $this->hasMany(Venta::class, 'id_cliente', 'id_cliente');

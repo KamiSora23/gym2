@@ -48,7 +48,7 @@ test('class end time must be after start time', function () {
         ->assertSessionHasErrors('hora_fin', null, 'clase');
 });
 
-test('a coach user sees only their classes and cannot manage the schedule', function () {
+test('a coach user sees only their classes and cannot touch other coaches classes', function () {
     $usuarioCoach = User::factory()->conRol(Role::ENTRENADOR)->create(['id_empresa' => $this->admin->id_empresa, 'id_sucursal' => $this->admin->id_sucursal]);
 
     $this->post('/entrenadores', ['nombre' => 'María', 'user_id' => $usuarioCoach->id])->assertSessionHasNoErrors();
@@ -63,7 +63,8 @@ test('a coach user sees only their classes and cannot manage the schedule', func
 
     $this->actingAs($usuarioCoach)->get('/entrenamiento')->assertOk()->assertSee('Pilates')->assertDontSee('Boxeo');
     $this->actingAs($usuarioCoach)->get('/entrenamiento?todas=1')->assertSee('Boxeo');
-    $this->actingAs($usuarioCoach)->post('/clases', ['nombre' => 'X', 'dia_semana' => 1, 'hora_inicio' => '09:00', 'hora_fin' => '10:00', 'cupo' => 5])->assertForbidden();
+    $boxeo = Clase::where('nombre', 'Boxeo')->first();
+    $this->actingAs($usuarioCoach)->delete("/clases/{$boxeo->id_clase}")->assertForbidden();
 });
 
 test('clients get a personal coach', function () {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Entrenador;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Permisos;
 use App\Support\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -76,6 +77,6 @@ class EntrenadorController extends Controller
 
     private function soloGestion(Request $request): void
     {
-        abort_unless($request->user()->isAdmin() || $request->user()->hasRole(Role::RECEPCIONISTA), 403);
+        Permisos::exigir('coaches.gestionar');
     }
 }

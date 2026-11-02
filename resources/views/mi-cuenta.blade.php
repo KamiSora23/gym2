@@ -58,9 +58,11 @@
     </section>
 
     <main class="container pb-5">
-        @if (session('success'))
-            <div class="alert alert-success mt-3">{{ session('success') }}</div>
-        @endif
+        @foreach (['success' => 'success', 'error' => 'danger'] as $clave => $tipo)
+            @if (session($clave))
+                <div class="alert alert-{{ $tipo }} mt-3">{{ session($clave) }}</div>
+            @endif
+        @endforeach
 
         @if (! $cliente)
             <div class="cuenta-card membresia-card">
@@ -116,11 +118,14 @@
                         <h5><i class="bi bi-calendar-week"></i> Mis clases</h5>
                         @forelse ($clases as $clase)
                             <div class="lista-item">
-                                <span>{{ $clase->nombre }}<small>{{ \App\Models\Clase::DIAS[$clase->dia_semana] }} · {{ $clase->horario }}</small></span>
-                                <span class="small text-muted">{{ $clase->entrenador?->nombre }}</span>
+                                <span>{{ $clase->nombre }}<small>{{ \App\Models\Clase::DIAS[$clase->dia_semana] }} · {{ $clase->horario }} · {{ $clase->entrenador?->nombre ?? 'Sin coach' }}</small></span>
+                                <form method="POST" action="{{ route('mi-cuenta.retirarse', $clase) }}">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Retirarme</button>
+                                </form>
                             </div>
                         @empty
-                            <p class="text-muted mb-0">No estás inscrito en ninguna clase.</p>
+                            <p class="text-muted mb-0">No estás inscrito en ninguna clase. Elige una abajo.</p>
                         @endforelse
                     </div>
                 </div>
@@ -150,6 +155,80 @@
                         @empty
                             <p class="text-muted mb-0">Sin membresías registradas.</p>
                         @endforelse
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="cuenta-card">
+                        <h5><i class="bi bi-list-check"></i> Mi rutina</h5>
+                        @if ($rutina)
+                            <p class="fw-bold mb-0">{{ $rutina->nombre }}</p>
+                            <p class="text-muted small">{{ $rutina->objetivo ?? 'Rutina personalizada' }} · por {{ $rutina->entrenador?->nombre ?? 'tu gimnasio' }}</p>
+                            @if ($rutina->notas)<p class="small mb-2">{{ $rutina->notas }}</p>@endif
+                            @foreach ($rutina->ejercicios->groupBy(fn ($e) => $e->dia ?: 'Ejercicios') as $dia => $ejercicios)
+                                <div class="small fw-bold text-uppercase mt-2" style="color: var(--primary); filter: brightness(.8);">{{ $dia }}</div>
+                                @foreach ($ejercicios as $ej)
+                                    <div class="lista-item">
+                                        <span>{{ $ej->ejercicio }}</span>
+                                        <span class="small text-muted">{{ $ej->series ? $ej->series.' × ' : '' }}{{ $ej->repeticiones }}{{ $ej->descanso ? ' · desc. '.$ej->descanso : '' }}</span>
+                                    </div>
+                                @endforeach
+                            @endforeach
+                        @else
+                            <p class="text-muted mb-0">Aún no tienes una rutina. Tu coach te la asignará pronto.</p>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="cuenta-card">
+                        <h5><i class="bi bi-graph-up-arrow"></i> Mi progreso</h5>
+                        @if ($progresos->isNotEmpty())
+                            @php $ult = $progresos->last(); $ini = $progresos->first(); @endphp
+                            <div class="row text-center g-2 mb-2">
+                                <div class="col-4"><div class="fw-bold fs-5">{{ $ult->peso ? (float) $ult->peso : '—' }}</div><div class="small text-muted">kg</div></div>
+                                <div class="col-4"><div class="fw-bold fs-5">{{ $ult->grasa ? (float) $ult->grasa.'%' : '—' }}</div><div class="small text-muted">grasa</div></div>
+                                <div class="col-4"><div class="fw-bold fs-5">{{ $ult->cintura ? (float) $ult->cintura : '—' }}</div><div class="small text-muted">cintura cm</div></div>
+                            </div>
+                            @if ($progresos->count() > 1 && $ult->peso && $ini->peso)
+                                @php $dif = (float) $ult->peso - (float) $ini->peso; @endphp
+                                <p class="small mb-2 {{ $dif <= 0 ? 'text-success' : 'text-warning' }}">{{ $dif > 0 ? '+' : '' }}{{ number_format($dif, 1) }} kg desde {{ $ini->fecha->format('d/m/Y') }}</p>
+                            @endif
+                            @foreach ($progresos->reverse()->take(4) as $p)
+                                <div class="lista-item"><span>{{ $p->fecha->format('d/m/Y') }}<small>{{ $p->notas }}</small></span><span class="small text-muted">{{ $p->peso ? (float) $p->peso.' kg' : '' }}</span></div>
+                            @endforeach
+                        @else
+                            <p class="text-muted mb-0">Tu coach registrará aquí tus mediciones.</p>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="cuenta-card">
+                        <h5><i class="bi bi-calendar-plus"></i> Clases disponibles</h5>
+                        @if (! $m)
+                            <p class="text-muted small">Necesitas una membresía vigente para inscribirte.</p>
+                        @endif
+                        <div class="row g-3">
+                            @forelse ($disponibles as $clase)
+                                @php $llena = $clase->clientes_count >= $clase->cupo; @endphp
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="border rounded-4 p-3 h-100 d-flex flex-column">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>{{ $clase->nombre }}</strong>
+                                            <span class="estado {{ $llena ? 'no' : 'ok' }}">{{ $clase->clientes_count }}/{{ $clase->cupo }}</span>
+                                        </div>
+                                        <div class="small text-muted mb-2">{{ \App\Models\Clase::DIAS[$clase->dia_semana] }} · {{ $clase->horario }} · {{ $clase->entrenador?->nombre ?? 'Sin coach' }}</div>
+                                        <form method="POST" action="{{ route('mi-cuenta.inscribirse', $clase) }}" class="mt-auto">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-primary w-100" @disabled($llena || ! $m)>{{ $llena ? 'Sin cupos' : 'Inscribirme' }}</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @empty
+                                <p class="text-muted mb-0">No hay más clases disponibles por ahora.</p>
+                            @endforelse
+                        </div>
                     </div>
                 </div>
 

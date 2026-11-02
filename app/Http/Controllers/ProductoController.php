@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Inventario;
 use App\Models\Producto;
 use App\Models\TipoProducto;
+use App\Support\Permisos;
 use App\Support\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,7 +26,9 @@ class ProductoController extends Controller
             'productos' => $productos,
             'categorias' => TipoProducto::orderBy('nombre')->get(),
             'sucursales' => Tenant::sucursales(),
-            'puedeEditar' => auth()->user()->isAdmin(),
+            'puedeEditar' => auth()->user()->permite('catalogo.editar'),
+            'puedeEntrada' => auth()->user()->permite('stock.entrada'),
+            'puedeSalida' => auth()->user()->permite('stock.salida'),
         ]);
     }
 
@@ -82,6 +85,8 @@ class ProductoController extends Controller
             'id_sucursal' => ['nullable', 'integer'],
         ]);
 
+        Permisos::exigir($datos['cantidad'] > 0 ? 'stock.entrada' : 'stock.salida');
+
         $sucursal = Tenant::sucursalParaRegistro($datos['id_sucursal'] ?? null);
 
         if (! $sucursal) {
@@ -134,6 +139,6 @@ class ProductoController extends Controller
 
     private function soloAdmin(): void
     {
-        abort_unless(auth()->user()->isAdmin(), 403, 'Solo un administrador puede modificar el catálogo.');
+        Permisos::exigir('catalogo.editar');
     }
 }

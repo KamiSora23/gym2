@@ -27,6 +27,7 @@
             <div class="form-group"><label>DNI *</label><input type="text" name="dni" value="{{ $creando ? old('dni') : '' }}" required></div>
             <div class="form-group"><label>Teléfono</label><input type="text" name="telefono" value="{{ $creando ? old('telefono') : '' }}"></div>
             <div class="form-group"><label>Correo</label><input type="email" name="correo" value="{{ $creando ? old('correo') : '' }}"></div>
+            @if ($puedeAsignarCoach)
             <div class="form-group">
                 <label>Coach personal</label>
                 <select name="id_entrenador">
@@ -36,6 +37,7 @@
                     @endforeach
                 </select>
             </div>
+            @endif
         </div>
         @if ($creando)
             @include('admin.partials.errores', ['bag' => 'cliente'])
@@ -77,7 +79,7 @@
                             <td>
                                 <div class="user-cell">
                                     <div class="user-avatar">{{ strtoupper(mb_substr($cliente->nombre, 0, 1)) }}</div>
-                                    <div>{{ $cliente->nombre }}<small>{{ $cliente->telefono ?? $cliente->correo ?? '—' }}</small></div>
+                                    <div><a href="{{ route('clientes.show', $cliente) }}" style="color:var(--text-dark); font-weight:600; text-decoration:none;">{{ $cliente->nombre }}</a><small>{{ $cliente->telefono ?? $cliente->correo ?? '—' }}</small></div>
                                 </div>
                             </td>
                             <td>{{ $cliente->dni }}</td>
@@ -93,6 +95,7 @@
                             <td>{{ $cliente->clases_count }}</td>
                             <td>
                                 <div class="row-actions">
+                                    <a href="{{ route('clientes.show', $cliente) }}" class="btn btn-light btn-sm btn-icon" title="Ver ficha"><i class="fas fa-eye"></i></a>
                                     @if (\App\Support\Permisos::puede(Auth::user(), 'ventas'))
                                         <a href="{{ route('ventas.create', ['cliente' => $cliente->id_cliente]) }}" class="btn btn-light btn-sm btn-icon" title="Vender membresía"><i class="fas fa-cash-register"></i></a>
                                     @endif
@@ -121,6 +124,7 @@
                                         <div class="form-group"><label>DNI</label><input type="text" name="dni" value="{{ $editando ? old('dni') : $cliente->dni }}" required></div>
                                         <div class="form-group"><label>Teléfono</label><input type="text" name="telefono" value="{{ $editando ? old('telefono') : $cliente->telefono }}"></div>
                                         <div class="form-group"><label>Correo</label><input type="email" name="correo" value="{{ $editando ? old('correo') : $cliente->correo }}"></div>
+                                        @if ($puedeAsignarCoach)
                                         <div class="form-group">
                                             <label>Coach personal</label>
                                             <select name="id_entrenador">
@@ -130,6 +134,7 @@
                                                 @endforeach
                                             </select>
                                         </div>
+                                        @endif
                                     </div>
                                     @if ($editando)
                                         @include('admin.partials.errores', ['bag' => 'cliente'])

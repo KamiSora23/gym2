@@ -9,6 +9,7 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\ConfiguracionController;
 use App\Http\Controllers\ContextoController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DisponibilidadController;
 use App\Http\Controllers\EntrenadorController;
 use App\Http\Controllers\GastoController;
 use App\Http\Controllers\MiCuentaController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Plataforma\PlataformaController;
 use App\Http\Controllers\Plataforma\UsuarioGlobalController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RutinaController;
 use App\Http\Controllers\VentaController;
 use App\Http\Middleware\EnModoPlataforma;
 use App\Models\Role;
@@ -58,7 +60,11 @@ Route::middleware('auth')->group(function () {
     });
 
     // ---------- Área del cliente ----------
-    Route::get('/mi-cuenta', MiCuentaController::class)->middleware('role:'.Role::CLIENTE)->name('mi-cuenta');
+    Route::middleware('role:'.Role::CLIENTE)->group(function () {
+        Route::get('/mi-cuenta', MiCuentaController::class)->name('mi-cuenta');
+        Route::post('/mi-cuenta/clases/{clase}', [MiCuentaController::class, 'inscribirse'])->name('mi-cuenta.inscribirse');
+        Route::delete('/mi-cuenta/clases/{clase}', [MiCuentaController::class, 'retirarse'])->name('mi-cuenta.retirarse');
+    });
 
     // ---------- Panel de la empresa (todo el personal) ----------
     Route::middleware(['role:'.implode(',', Role::STAFF), 'empresa'])->group(function () {
@@ -69,7 +75,15 @@ Route::middleware('auth')->group(function () {
             ->name('dashboard');
 
         Route::middleware(Permisos::middleware('clientes'))->group(function () {
-            Route::resource('clientes', ClienteController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::resource('clientes', ClienteController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
+
+            // Rutinas y progreso del alumno (admin o su coach).
+            Route::post('/clientes/{cliente}/rutinas', [RutinaController::class, 'store'])->name('rutinas.store');
+            Route::put('/rutinas/{rutina}', [RutinaController::class, 'update'])->name('rutinas.update');
+            Route::patch('/rutinas/{rutina}/activar', [RutinaController::class, 'activar'])->name('rutinas.activar');
+            Route::delete('/rutinas/{rutina}', [RutinaController::class, 'destroy'])->name('rutinas.destroy');
+            Route::post('/clientes/{cliente}/progreso', [RutinaController::class, 'progreso'])->name('progreso.store');
+            Route::delete('/progreso/{progreso}', [RutinaController::class, 'eliminarProgreso'])->name('progreso.destroy');
         });
 
         Route::middleware(Permisos::middleware('asistencias'))->group(function () {
@@ -107,6 +121,9 @@ Route::middleware('auth')->group(function () {
 
         Route::middleware(Permisos::middleware('entrenamiento'))->group(function () {
             Route::get('/entrenamiento', [ClaseController::class, 'index'])->name('entrenamiento.index');
+            Route::get('/entrenamiento/mi-perfil', [DisponibilidadController::class, 'miPerfil'])->name('entrenamiento.mi-perfil');
+            Route::get('/entrenadores/{entrenador}/disponibilidad', [DisponibilidadController::class, 'edit'])->name('entrenadores.disponibilidad');
+            Route::put('/entrenadores/{entrenador}/disponibilidad', [DisponibilidadController::class, 'update'])->name('entrenadores.disponibilidad.update');
             Route::resource('entrenadores', EntrenadorController::class)->only(['store', 'update', 'destroy'])
                 ->parameters(['entrenadores' => 'entrenador']);
             Route::resource('clases', ClaseController::class)->only(['store', 'update', 'destroy']);

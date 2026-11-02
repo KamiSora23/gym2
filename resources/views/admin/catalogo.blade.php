@@ -98,16 +98,18 @@
                             </p>
                         @endif
 
+                        @if ($puedeEntrada)
                         <form method="POST" action="{{ route('productos.stock', $producto) }}" style="display:flex; gap:.4rem; margin-top:.8rem;">
                             @csrf
-                            <input type="number" name="cantidad" placeholder="+/- unid." required style="width:90px; padding:.4rem .5rem; border:1px solid #cbd5e1; border-radius:9px; font-size:.85rem;">
+                            <input type="number" name="cantidad" placeholder="{{ $puedeSalida ? '+/- unid.' : '+ unid.' }}" @unless ($puedeSalida) min="1" @endunless required style="width:90px; padding:.4rem .5rem; border:1px solid #cbd5e1; border-radius:9px; font-size:.85rem;">
                             @unless ($sucursalFija)
                                 <select name="id_sucursal" style="flex:1; min-width:0; padding:.4rem; border:1px solid #cbd5e1; border-radius:9px; font-size:.8rem;">
                                     @foreach ($sucursales as $s)<option value="{{ $s->id_sucursal }}">{{ $s->nombre }}</option>@endforeach
                                 </select>
                             @endunless
-                            <button type="submit" class="btn btn-light btn-sm" title="Ajustar stock"><i class="fas fa-boxes-stacked"></i></button>
+                            <button type="submit" class="btn btn-light btn-sm" title="{{ $puedeSalida ? 'Ajustar stock' : 'Registrar entrada de stock' }}"><i class="fas fa-boxes-stacked"></i></button>
                         </form>
+                        @endif
 
                         @if ($puedeEditar)
                             <div class="company-actions" style="margin-top:.6rem;">

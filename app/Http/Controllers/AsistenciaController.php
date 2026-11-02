@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Asistencia;
 use App\Models\Cliente;
+use App\Support\Permisos;
 use App\Support\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,6 +35,8 @@ class AsistenciaController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        Permisos::exigir('asistencias.registrar');
+
         $datos = $request->validateWithBag('asistencia', [
             'id_cliente' => ['required', Rule::exists('clientes', 'id_cliente')->where('id_empresa', Tenant::empresaId())],
             'id_sucursal' => ['nullable', 'integer'],
@@ -66,6 +69,8 @@ class AsistenciaController extends Controller
 
     public function salida(Asistencia $asistencia): RedirectResponse
     {
+        Permisos::exigir('asistencias.registrar');
+
         if ($asistencia->hora_salida) {
             return back()->with('error', 'La salida ya estaba registrada.');
         }

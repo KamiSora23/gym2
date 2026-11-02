@@ -7,7 +7,7 @@
 
     @php
         $estados = ['completado' => ['status-active', 'Pagada'], 'pendiente' => ['status-pending', 'Pendiente'], 'anulado' => ['status-cancelled', 'Anulada']];
-        $puedeAnular = Auth::user()->isAdmin() || Auth::user()->hasRole('cajera');
+        $puedeAnular = Auth::user()->permite('ventas.anular');
     @endphp
 
     <div class="stats-grid">

@@ -11,17 +11,21 @@ use App\Support\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
- * Horario de clases, entrenadores e inscripciones.
+ * Horario de clases, coaches e inscripciones.
+ *
+ * - Admin y recepción gestionan cualquier clase.
+ * - El coach crea, edita y elimina solo sus propias clases, e inscribe alumnos en ellas.
  */
 class ClaseController extends Controller
 {
     public function index(Request $request): View
     {
         $user = $request->user();
-        $miPerfil = $user->hasRole(Role::ENTRENADOR) ? $user->entrenador : null;
+        $miPerfil = $user->hasRole(Role::ENTRENADOR) ? $user->entrenador?->load('disponibilidad') : null;
 
         // Un entrenador ve por defecto solo sus clases.
         $soloMias = $miPerfil && ! $request->boolean('todas');
@@ -34,7 +38,7 @@ class ClaseController extends Controller
             ->get();
 
         $entrenadores = Entrenador::withCount(['clases', 'clientes'])
-            ->with(['usuario', 'sucursal'])
+            ->with(['usuario', 'sucursal', 'disponibilidad'])
             ->orderByDesc('activo')
             ->orderBy('nombre')
             ->get();
@@ -51,16 +55,29 @@ class ClaseController extends Controller
                 ->get(),
             'miPerfil' => $miPerfil,
             'soloMias' => $soloMias,
-            'puedeGestionar' => $user->isAdmin() || $user->hasRole(Role::RECEPCIONISTA),
+            'puedeTodas' => $user->permite('clases.todas'),
+            'puedePropias' => $user->permite('clases.propias') && $miPerfil,
+            'puedeCoaches' => $user->permite('coaches.gestionar'),
+            'puedeEditarClase' => fn (Clase $c) => $this->puedeGestionar($user, $c),
+            'puedeInscribir' => fn (Clase $c) => $this->puedeInscribir($user, $c),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $this->soloGestion($request);
-
+        $user = $request->user();
         $datos = $this->validar($request);
+
+        if (! $user->permite('clases.todas')) {
+            abort_unless($user->permite('clases.propias') && $user->entrenador, 403, 'No puedes crear clases.');
+
+            // El coach siempre crea la clase a su nombre y en su sucursal.
+            $datos['id_entrenador'] = $user->entrenador->id_entrenador;
+            $datos['id_sucursal'] = $user->id_sucursal ?? $user->entrenador->id_sucursal;
+        }
+
         $datos['id_sucursal'] = Tenant::sucursalParaRegistro($datos['id_sucursal'] ?? null);
+        $this->validarHorario($datos);
 
         Clase::create($datos);
 
@@ -69,15 +86,23 @@ class ClaseController extends Controller
 
     public function update(Request $request, Clase $clase): RedirectResponse
     {
-        $this->soloGestion($request);
+        $user = $request->user();
+        abort_unless($this->puedeGestionar($user, $clase), 403, 'Solo puedes editar tus propias clases.');
 
         $datos = $this->validar($request);
+
+        if (! $user->permite('clases.todas')) {
+            $datos['id_entrenador'] = $clase->id_entrenador;
+            $datos['id_sucursal'] = $clase->id_sucursal;
+        }
 
         if ($datos['cupo'] < $clase->clientes()->count()) {
             return back()->with('error', 'El cupo no puede ser menor que la cantidad de inscritos.');
         }
 
         $datos['id_sucursal'] = Tenant::sucursalParaRegistro($datos['id_sucursal'] ?? $clase->id_sucursal);
+        $this->validarHorario($datos, $clase);
+
         $clase->update($datos);
 
         return redirect()->route('entrenamiento.index')->with('success', 'Clase actualizada.');
@@ -85,7 +110,7 @@ class ClaseController extends Controller
 
     public function destroy(Request $request, Clase $clase): RedirectResponse
     {
-        $this->soloGestion($request);
+        abort_unless($this->puedeGestionar($request->user(), $clase), 403, 'Solo puedes eliminar tus propias clases.');
 
         $clase->delete();
 
@@ -94,6 +119,8 @@ class ClaseController extends Controller
 
     public function inscribir(Request $request, Clase $clase): RedirectResponse
     {
+        abort_unless($this->puedeInscribir($request->user(), $clase), 403, 'Solo puedes inscribir alumnos en tus clases.');
+
         $datos = $request->validateWithBag('inscripcion', [
             'id_cliente' => ['required', Rule::exists('clientes', 'id_cliente')->where('id_empresa', Tenant::empresaId())],
         ]);
@@ -111,11 +138,59 @@ class ClaseController extends Controller
         return back()->with('success', 'Cliente inscrito en la clase.');
     }
 
-    public function desinscribir(Clase $clase, Cliente $cliente): RedirectResponse
+    public function desinscribir(Request $request, Clase $clase, Cliente $cliente): RedirectResponse
     {
+        abort_unless($this->puedeInscribir($request->user(), $clase), 403, 'Solo puedes retirar alumnos de tus clases.');
+
         $clase->clientes()->detach($cliente->id_cliente);
 
         return back()->with('success', "{$cliente->nombre} fue retirado de la clase.");
+    }
+
+    private function puedeGestionar(User $user, Clase $clase): bool
+    {
+        return $user->permite('clases.todas')
+            || ($user->permite('clases.propias') && $user->entrenador && (int) $clase->id_entrenador === $user->entrenador->id_entrenador);
+    }
+
+    private function puedeInscribir(User $user, Clase $clase): bool
+    {
+        return $user->permite('inscripciones.todas')
+            || ($user->permite('inscripciones.propias') && $user->entrenador && (int) $clase->id_entrenador === $user->entrenador->id_entrenador);
+    }
+
+    /**
+     * Un coach no puede tener dos clases a la misma hora, y la clase debe caber en su disponibilidad.
+     */
+    private function validarHorario(array $datos, ?Clase $actual = null): void
+    {
+        if (empty($datos['id_entrenador'])) {
+            return;
+        }
+
+        $coach = Entrenador::find($datos['id_entrenador']);
+
+        $cruce = Clase::where('id_entrenador', $coach->id_entrenador)
+            ->where('dia_semana', $datos['dia_semana'])
+            ->when($actual, fn ($q) => $q->where('id_clase', '!=', $actual->id_clase))
+            // Se comparan con segundos para que SQLite y MySQL den el mismo resultado.
+            ->where('hora_inicio', '<', substr($datos['hora_fin'], 0, 5).':00')
+            ->where('hora_fin', '>', substr($datos['hora_inicio'], 0, 5).':00')
+            ->first();
+
+        if ($cruce) {
+            throw ValidationException::withMessages([
+                'hora_inicio' => "{$coach->nombre} ya tiene la clase {$cruce->nombre} ({$cruce->horario}) ese día.",
+            ])->errorBag('clase');
+        }
+
+        if (! $coach->disponibleEn((int) $datos['dia_semana'], $datos['hora_inicio'], $datos['hora_fin'])) {
+            $franjas = $coach->disponibilidad->where('dia_semana', (int) $datos['dia_semana'])->map->horario->implode(', ');
+
+            throw ValidationException::withMessages([
+                'hora_inicio' => "{$coach->nombre} no está disponible ese horario. Disponibilidad ese día: ".($franjas ?: 'ninguna').'.',
+            ])->errorBag('clase');
+        }
     }
 
     private function validar(Request $request): array
@@ -129,10 +204,5 @@ class ClaseController extends Controller
             'cupo' => ['required', 'integer', 'min:1', 'max:500'],
             'id_sucursal' => ['nullable', 'integer'],
         ]);
-    }
-
-    private function soloGestion(Request $request): void
-    {
-        abort_unless($request->user()->isAdmin() || $request->user()->hasRole(Role::RECEPCIONISTA), 403);
     }
 }

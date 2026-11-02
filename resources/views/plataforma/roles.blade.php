@@ -50,8 +50,35 @@
         </div>
     </div>
 
+    <div class="table-card">
+        <div class="table-header"><h3>Acciones permitidas dentro de los módulos</h3><span class="muted">Se validan en el servidor, no solo se ocultan los botones</span></div>
+        <div class="table-scroll">
+            <table class="data-table matrix">
+                <thead>
+                    <tr>
+                        <th>Acción</th>
+                        @foreach ($roles->where('nombre', '!=', 'cliente') as $rol)
+                            <th>{{ $rol->etiqueta }}</th>
+                        @endforeach
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (\App\Support\Permisos::ACCIONES as $accion => [$descripcion, $permitidos])
+                        <tr>
+                            <td style="white-space:normal;">{{ $descripcion }}</td>
+                            @foreach ($roles->where('nombre', '!=', 'cliente') as $rol)
+                                @php $si = $rol->nombre === 'super_admin' || in_array($rol->nombre, $permitidos, true); @endphp
+                                <td><i class="fas {{ $si ? 'fa-circle-check si' : 'fa-circle-minus no' }}"></i></td>
+                            @endforeach
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="alert alert-info" style="margin:0;">
         <i class="fas fa-circle-info"></i>
-        Dentro de los módulos hay restricciones adicionales: solo admin y caja anulan ventas, solo el admin edita el catálogo y elimina registros, y el entrenador ve solo sus clases y alumnos.
+        «Propias» significa que el coach solo actúa sobre sus clases y sus alumnos. El cliente tiene su propia área («Mi cuenta») para ver su rutina y progreso e inscribirse en clases.
     </div>
 </x-admin-layout>

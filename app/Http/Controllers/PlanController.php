@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Membresia;
 use App\Models\Plan;
+use App\Support\Permisos;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -32,6 +33,8 @@ class PlanController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        Permisos::exigir('planes.editar');
+
         Plan::create($this->validar($request) + ['activo' => true]);
 
         return redirect()->route('planes.index')->with('success', 'Plan creado correctamente.');
@@ -39,6 +42,8 @@ class PlanController extends Controller
 
     public function update(Request $request, Plan $plan): RedirectResponse
     {
+        Permisos::exigir('planes.editar');
+
         $datos = $this->validar($request);
         $datos['activo'] = $request->boolean('activo');
         $plan->update($datos);
@@ -48,6 +53,8 @@ class PlanController extends Controller
 
     public function destroy(Plan $plan): RedirectResponse
     {
+        Permisos::exigir('planes.editar');
+
         if ($plan->membresias()->exists()) {
             $plan->update(['activo' => false]);
 

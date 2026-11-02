@@ -9,6 +9,7 @@ use App\Models\Membresia;
 use App\Models\Plan;
 use App\Models\Producto;
 use App\Models\Venta;
+use App\Support\Permisos;
 use App\Support\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -65,6 +66,8 @@ class VentaController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        Permisos::exigir('ventas.vender');
+
         $empresaId = Tenant::empresaId();
 
         $datos = $request->validate([
@@ -180,6 +183,8 @@ class VentaController extends Controller
      */
     public function cobrar(Venta $venta): RedirectResponse
     {
+        Permisos::exigir('ventas.cobrar');
+
         if ($venta->estado !== 'pendiente') {
             return back()->with('error', 'Solo se pueden cobrar ventas pendientes.');
         }
@@ -197,7 +202,7 @@ class VentaController extends Controller
      */
     public function anular(Request $request, Venta $venta): RedirectResponse
     {
-        abort_unless($request->user()->isAdmin() || $request->user()->hasRole('cajera'), 403);
+        Permisos::exigir('ventas.anular');
 
         if ($venta->estado === 'anulado') {
             return back()->with('error', 'La venta ya estaba anulada.');
