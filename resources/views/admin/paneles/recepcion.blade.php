@@ -8,6 +8,8 @@
 
     @php $enGym = $asistenciasHoy->whereNull('hora_salida'); @endphp
 
+    @include('admin.partials.estado-caja')
+
     <div class="stats-grid">
         <div class="stat-card green"><div class="stat-title">En el gym ahora</div><div class="stat-value">{{ $enGym->count() }}</div><div class="stat-icon"><i class="fas fa-person-running"></i></div></div>
         <div class="stat-card cyan"><div class="stat-title">Check-ins hoy</div><div class="stat-value">{{ $asistenciasHoy->count() }}</div><div class="stat-icon"><i class="fas fa-right-to-bracket"></i></div></div>

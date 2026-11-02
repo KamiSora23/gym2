@@ -3,13 +3,14 @@
 
     <x-slot name="acciones">
         <a href="{{ route('clientes.index') }}" class="btn btn-light"><i class="fas fa-arrow-left"></i> Volver</a>
-        @if (Auth::user()->permite('ventas.vender'))
+        @if (Auth::user()->permite('sales.create'))
             <a href="{{ route('ventas.create', ['cliente' => $cliente->id_cliente]) }}" class="btn btn-primary"><i class="fas fa-id-card"></i> Vender membresía</a>
         @endif
     </x-slot>
 
     @php
         $m = $cliente->membresiaActiva;
+        $congelada = $membresias->firstWhere('estado', 'congelada');
         $activa = $cliente->rutinas->firstWhere('activa', true);
         $otras = $cliente->rutinas->reject(fn ($r) => $r->activa);
         $ultimo = $cliente->progresos->first();
@@ -22,7 +23,20 @@
             <div class="stat-title">Membresía</div>
             <div class="stat-value" style="font-size:1.2rem;">{{ $m?->plan?->nombre ?? 'Sin membresía' }}</div>
             <div class="stat-icon"><i class="fas fa-id-card"></i></div>
-            <div class="stat-hint">{{ $m ? 'Hasta '.$m->fecha_fin->format('d/m/Y') : 'Debe renovar' }}</div>
+            <div class="stat-hint">
+                @if ($congelada)
+                    Congelada desde {{ $congelada->congelada_desde?->format('d/m/Y') }}
+                @else
+                    {{ $m ? 'Hasta '.$m->fecha_fin->format('d/m/Y') : 'Debe renovar' }}
+                @endif
+            </div>
+            @if ($puedeCongelar && ($m || $congelada))
+                <form method="POST" action="{{ $congelada ? route('membresias.reanudar', $congelada) : route('membresias.congelar', $m) }}" style="margin-top:.6rem;"
+                    data-confirm="{{ $congelada ? '¿Reanudar la membresía? Se sumarán los días congelados.' : '¿Congelar la membresía? Los días no se descontarán hasta reanudarla.' }}">
+                    @csrf @method('PATCH')
+                    <button type="submit" class="btn btn-light btn-sm"><i class="fas {{ $congelada ? 'fa-play' : 'fa-snowflake' }}"></i> {{ $congelada ? 'Reanudar' : 'Congelar' }}</button>
+                </form>
+            @endif
         </div>
         <div class="stat-card purple">
             <div class="stat-title">Coach personal</div>
@@ -156,7 +170,7 @@
                 @endif
             </div>
 
-            @if ($puedeRutinas)
+            @if ($puedeEvaluar)
                 <form method="POST" action="{{ route('progreso.store', $cliente) }}" class="form-card">
                     @csrf
                     <h3><i class="fas fa-ruler"></i> Registrar medición</h3>
@@ -186,7 +200,7 @@
                                     <td>{{ $p->cintura ? $p->cintura.' cm' : '—' }}</td>
                                     <td style="white-space:normal; max-width:220px;">{{ $p->notas ?? '—' }}</td>
                                     <td class="text-right">
-                                        @if ($puedeRutinas)
+                                        @if ($puedeEvaluar)
                                             <form method="POST" action="{{ route('progreso.destroy', $p) }}" data-confirm="¿Eliminar esta medición?">@csrf @method('DELETE')<button type="submit" class="btn btn-danger btn-sm btn-icon"><i class="fas fa-trash"></i></button></form>
                                         @endif
                                     </td>
@@ -200,6 +214,52 @@
             </div>
         </div>
     </div>
+
+    @if ($veNutricion)
+        <div class="table-card" id="nutricion">
+            <div class="table-header">
+                <h3><i class="fas fa-apple-whole" style="color:var(--primary)"></i> Nutrición <span class="status-badge status-dark"><i class="fas fa-lock"></i> Privado</span></h3>
+                <span class="muted">Nutricionista: {{ $cliente->nutricionista?->name ?? 'sin asignar' }}</span>
+            </div>
+            @php $planActivo = $planesNutricionales->firstWhere('activo', true); @endphp
+            <div style="padding:1.25rem 1.5rem;">
+                @if ($planActivo)
+                    <div class="campaign-header">
+                        <div><h3 class="campaign-title">{{ $planActivo->objetivo }}</h3><p>Por {{ $planActivo->nutricionista?->name ?? '—' }} · {{ $planActivo->created_at->format('d/m/Y') }}</p></div>
+                        @if ($puedeNutricion)
+                            <form method="POST" action="{{ route('nutricion.destroy', $planActivo) }}" data-confirm="¿Eliminar este plan nutricional?">@csrf @method('DELETE')<button type="submit" class="btn btn-danger btn-sm btn-icon"><i class="fas fa-trash"></i></button></form>
+                        @endif
+                    </div>
+                    <div class="campaign-metrics" style="grid-template-columns: repeat(4, 1fr);">
+                        <div class="campaign-metric"><div class="campaign-metric-value">{{ $planActivo->calorias ?? '—' }}</div><div class="campaign-metric-label">kcal/día</div></div>
+                        <div class="campaign-metric"><div class="campaign-metric-value">{{ $planActivo->proteinas ?? '—' }}</div><div class="campaign-metric-label">Proteína g</div></div>
+                        <div class="campaign-metric"><div class="campaign-metric-value">{{ $planActivo->carbohidratos ?? '—' }}</div><div class="campaign-metric-label">Carbos g</div></div>
+                        <div class="campaign-metric"><div class="campaign-metric-value">{{ $planActivo->grasas ?? '—' }}</div><div class="campaign-metric-label">Grasas g</div></div>
+                    </div>
+                    @if ($planActivo->indicaciones)<p style="white-space:pre-line; font-size:.88rem; color:var(--text-gray); margin:1rem 0 0;">{{ $planActivo->indicaciones }}</p>@endif
+                @else
+                    <p class="muted" style="margin:0;">Sin plan nutricional activo.</p>
+                @endif
+
+                @if ($puedeNutricion)
+                    <form method="POST" action="{{ route('nutricion.store', $cliente) }}" style="margin-top:1.25rem; border-top:1px solid var(--line); padding-top:1rem;">
+                        @csrf
+                        <div class="section-label">{{ $planActivo ? 'Reemplazar plan' : 'Nuevo plan nutricional' }}</div>
+                        <div class="form-grid cols-4">
+                            <div class="form-group" style="grid-column: span 2;"><label>Objetivo *</label><input type="text" name="objetivo" placeholder="Déficit calórico para perder grasa" required></div>
+                            <div class="form-group"><label>Calorías</label><input type="number" name="calorias" min="500"></div>
+                            <div class="form-group"><label>Proteínas (g)</label><input type="number" name="proteinas" min="0"></div>
+                            <div class="form-group"><label>Carbohidratos (g)</label><input type="number" name="carbohidratos" min="0"></div>
+                            <div class="form-group"><label>Grasas (g)</label><input type="number" name="grasas" min="0"></div>
+                        </div>
+                        <div class="form-group" style="margin-top:1rem;"><label>Indicaciones</label><textarea name="indicaciones" rows="3" placeholder="Desayuno: … · Almuerzo: …"></textarea></div>
+                        @include('admin.partials.errores', ['bag' => 'nutricion'])
+                        <div class="form-actions"><button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Guardar plan</button></div>
+                    </form>
+                @endif
+            </div>
+        </div>
+    @endif
 
     <x-slot name="scripts">
         <script>

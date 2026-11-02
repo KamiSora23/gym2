@@ -6,6 +6,7 @@ use App\Models\Asistencia;
 use App\Models\Clase;
 use App\Models\Cliente;
 use App\Models\Membresia;
+use App\Models\PlanNutricional;
 use App\Models\Progreso;
 use App\Models\Rutina;
 use App\Models\Venta;
@@ -37,6 +38,7 @@ class MiCuentaController extends Controller
                 ->orderBy('dia_semana')->orderBy('hora_inicio')->get(),
             'rutina' => Rutina::with(['ejercicios', 'entrenador'])->where('id_cliente', $idCliente)->where('activa', true)->latest()->first(),
             'progresos' => Progreso::where('id_cliente', $idCliente)->orderBy('fecha')->get(),
+            'planNutricional' => PlanNutricional::with('nutricionista')->where('id_cliente', $idCliente)->where('activo', true)->latest()->first(),
             'cliente' => $cliente,
             'membresias' => Membresia::with('plan')->where('id_cliente', $idCliente)->orderByDesc('fecha_fin')->limit(5)->get(),
             'clases' => $misClases,

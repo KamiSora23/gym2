@@ -7,7 +7,7 @@
 
     @php
         $estados = ['completado' => ['status-active', 'Pagada'], 'pendiente' => ['status-pending', 'Pendiente'], 'anulado' => ['status-cancelled', 'Anulada']];
-        $puedeAnular = Auth::user()->permite('ventas.anular');
+        $puedeAnular = Auth::user()->permite('sales.cancel');
     @endphp
 
     <div class="stats-grid">
@@ -64,7 +64,7 @@
                                         </form>
                                     @endif
                                     @if ($puedeAnular && $venta->estado !== 'anulado')
-                                        <form method="POST" action="{{ route('ventas.anular', $venta) }}" data-confirm="¿Anular la venta {{ $venta->folio }}? Se devolverá el stock y se cancelará la membresía.">
+                                        <form method="POST" action="{{ route('ventas.anular', $venta) }}" data-motivo="Motivo de la anulación de la venta {{ $venta->folio }} (se devolverá el stock, el dinero saldrá de tu caja y se cancelará la membresía):">
                                             @csrf @method('PATCH')
                                             <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Anular"><i class="fas fa-ban"></i></button>
                                         </form>

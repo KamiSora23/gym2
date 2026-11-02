@@ -34,7 +34,7 @@ class UsuarioGlobalController extends Controller
 
         return view('plataforma.usuarios', [
             'usuarios' => $usuarios,
-            'roles' => Role::orderBy('id')->get(),
+            'roles' => Role::whereNull('id_empresa')->orderBy('id')->get(),
             'empresas' => Empresa::orderBy('nombre')->get(),
             'sucursales' => Sucursal::withoutGlobalScopes()->where('activo', true)->orderBy('nombre')->get(),
         ]);
@@ -102,7 +102,7 @@ class UsuarioGlobalController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users')->ignore($usuario?->id)],
             'password' => [$usuario ? 'nullable' : 'required', 'confirmed', Password::defaults()],
-            'role_id' => ['required', 'exists:roles,id'],
+            'role_id' => ['required', Rule::exists('roles', 'id')->whereNull('id_empresa')],
             'id_empresa' => [$esSuper ? 'nullable' : 'required', 'nullable', 'exists:empresa,id_empresa'],
             'id_sucursal' => ['nullable', Rule::exists('sucursales', 'id_sucursal')->where('id_empresa', $request->input('id_empresa'))],
         ], [

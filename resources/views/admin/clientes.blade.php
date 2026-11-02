@@ -1,7 +1,7 @@
 <x-admin-layout :titulo="$esCoach ? 'Mis alumnos' : 'Clientes'" icono="fa-users" modulo="clientes"
     :subtitulo="$esCoach ? 'Clientes que entrenas en persona o que están inscritos en tus clases.' : 'Socios del gimnasio, su membresía y su coach personal.'">
 
-    @if ($puedeEditar)
+    @if ($puedeCrear)
         <x-slot name="acciones">
             <button type="button" class="btn btn-primary" data-toggle-target="form-cliente">
                 <i class="fas fa-user-plus"></i> Nuevo cliente
@@ -34,6 +34,17 @@
                     <option value="">Sin coach</option>
                     @foreach ($entrenadores as $e)
                         <option value="{{ $e->id_entrenador }}" @selected($creando && old('id_entrenador') == $e->id_entrenador)>{{ $e->nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
+            @if ($puedeAsignarCoach && $nutricionistas->isNotEmpty())
+            <div class="form-group">
+                <label>Nutricionista</label>
+                <select name="id_nutricionista">
+                    <option value="">Sin nutricionista</option>
+                    @foreach ($nutricionistas as $n)
+                        <option value="{{ $n->id }}" @selected($creando && old('id_nutricionista') == $n->id)>{{ $n->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -131,6 +142,17 @@
                                                 <option value="">Sin coach</option>
                                                 @foreach ($entrenadores as $e)
                                                     <option value="{{ $e->id_entrenador }}" @selected(($editando ? old('id_entrenador') : $cliente->id_entrenador) == $e->id_entrenador)>{{ $e->nombre }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        @endif
+                                        @if ($puedeAsignarCoach && $nutricionistas->isNotEmpty())
+                                        <div class="form-group">
+                                            <label>Nutricionista</label>
+                                            <select name="id_nutricionista">
+                                                <option value="">Sin nutricionista</option>
+                                                @foreach ($nutricionistas as $n)
+                                                    <option value="{{ $n->id }}" @selected(($editando ? old('id_nutricionista') : $cliente->id_nutricionista) == $n->id)>{{ $n->name }}</option>
                                                 @endforeach
                                             </select>
                                         </div>

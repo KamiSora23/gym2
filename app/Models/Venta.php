@@ -20,12 +20,13 @@ class Venta extends Model
 
     protected $primaryKey = 'id_venta';
 
-    protected $fillable = ['id_empresa', 'id_sucursal', 'id_cliente', 'user_id', 'fecha', 'total', 'estado', 'metodo_pago'];
+    protected $fillable = ['id_empresa', 'id_sucursal', 'id_cliente', 'user_id', 'fecha', 'total', 'estado', 'metodo_pago', 'id_sesion', 'anulada_por', 'anulada_en', 'motivo_anulacion'];
 
     protected function casts(): array
     {
         return [
             'fecha' => 'date',
+            'anulada_en' => 'datetime',
             'total' => 'decimal:2',
         ];
     }
@@ -38,6 +39,11 @@ class Venta extends Model
     public function vendedor()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function anuladaPor()
+    {
+        return $this->belongsTo(User::class, 'anulada_por');
     }
 
     public function detalles()

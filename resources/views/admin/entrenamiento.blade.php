@@ -231,7 +231,7 @@
                                 <td>{{ $e->clases_count }}</td>
                                 <td>
                                     <div class="row-actions">
-                                        @if (Auth::user()->permite('disponibilidad.todas') || $miPerfil?->is($e))
+                                        @if (Auth::user()->permite('trainers.availability') || $miPerfil?->is($e))
                                             <a href="{{ route('entrenadores.disponibilidad', $e) }}" class="btn btn-light btn-sm btn-icon" title="Perfil y disponibilidad"><i class="fas fa-user-clock"></i></a>
                                         @endif
                                         @if ($puedeCoaches)

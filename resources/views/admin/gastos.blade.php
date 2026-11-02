@@ -73,7 +73,7 @@
                             <td>{{ $gasto->sucursal?->nombre ?? '—' }}</td>
                             <td>{{ $gasto->usuario?->name ?? '—' }}</td>
                             <td class="text-right">
-                                @if (Auth::user()->permite('gastos.eliminar'))
+                                @if (Auth::user()->permite('expenses.delete'))
                                     <form method="POST" action="{{ route('gastos.destroy', $gasto) }}" data-confirm="¿Eliminar el gasto «{{ $gasto->concepto }}»?">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Eliminar"><i class="fas fa-trash"></i></button>

@@ -77,6 +77,6 @@ class EntrenadorController extends Controller
 
     private function soloGestion(Request $request): void
     {
-        Permisos::exigir('coaches.gestionar');
+        Permisos::exigir('trainers.manage');
     }
 }

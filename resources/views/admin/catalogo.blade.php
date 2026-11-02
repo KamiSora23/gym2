@@ -3,6 +3,9 @@
 
     <x-slot name="acciones">
         <div class="search-box"><i class="fas fa-search"></i><input type="search" placeholder="Buscar producto…" data-filter-cards="catalog-grid"></div>
+        @if ($puedeKardex)
+            <a href="{{ route('inventario.movimientos') }}" class="btn btn-light"><i class="fas fa-boxes-stacked"></i> Kardex</a>
+        @endif
         @if ($puedeEditar)
             <button type="button" class="btn btn-light" data-toggle-target="form-categoria"><i class="fas fa-tags"></i> Categoría</button>
             <button type="button" class="btn btn-primary" data-toggle-target="form-producto"><i class="fas fa-plus"></i> Nuevo producto</button>
@@ -48,6 +51,9 @@
                     </select>
                 </div>
                 <div class="form-group"><label>Precio de venta *</label><input type="number" step="0.01" min="0" name="precio" value="{{ $creando ? old('precio') : '' }}" required></div>
+                <div class="form-group"><label>Precio de compra</label><input type="number" step="0.01" min="0" name="precio_compra" value="{{ $creando ? old('precio_compra') : '' }}"></div>
+                <div class="form-group"><label>SKU / código</label><input type="text" name="sku" value="{{ $creando ? old('sku') : '' }}" placeholder="PROT-WHEY-2KG"></div>
+                <div class="form-group"><label>Stock mínimo</label><input type="number" min="0" name="stock_minimo" value="{{ $creando ? old('stock_minimo', 5) : 5 }}"></div>
                 <div class="form-group"><label>Stock inicial</label><input type="number" min="0" name="stock_inicial" value="{{ $creando ? old('stock_inicial') : 0 }}"></div>
                 @unless ($sucursalFija)
                     <div class="form-group">
@@ -87,8 +93,8 @@
                         <h3 class="catalog-title">{{ $producto->nombre }}</h3>
                         <p class="catalog-price">{{ dinero($producto->precio) }}</p>
                         <p class="catalog-stock">
-                            <i class="fas fa-box" style="margin-right:5px;"></i> Stock: <strong>{{ $stock }}</strong>
-                            @if ($stock <= 5)
+                            <i class="fas fa-box" style="margin-right:5px;"></i> Stock: <strong>{{ $stock }}</strong> <span class="muted">/ mín. {{ $producto->stock_minimo }}</span>
+                            @if ($stock <= $producto->stock_minimo)
                                 <span class="status-badge {{ $stock === 0 ? 'status-cancelled' : 'status-pending' }}" style="margin-left:4px;">{{ $stock === 0 ? 'Agotado' : 'Bajo' }}</span>
                             @endif
                         </p>
@@ -98,10 +104,16 @@
                             </p>
                         @endif
 
-                        @if ($puedeEntrada)
-                        <form method="POST" action="{{ route('productos.stock', $producto) }}" style="display:flex; gap:.4rem; margin-top:.8rem;">
+                        @if ($puedeEntrada || $puedeSalida)
+                        <form method="POST" action="{{ route('productos.stock', $producto) }}" style="display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.8rem;">
                             @csrf
-                            <input type="number" name="cantidad" placeholder="{{ $puedeSalida ? '+/- unid.' : '+ unid.' }}" @unless ($puedeSalida) min="1" @endunless required style="width:90px; padding:.4rem .5rem; border:1px solid #cbd5e1; border-radius:9px; font-size:.85rem;">
+                            <input type="number" name="cantidad" placeholder="{{ $puedeSalida && $puedeEntrada ? '+/- unid.' : ($puedeEntrada ? '+ unid.' : '- unid.') }}" @unless ($puedeSalida) min="1" @endunless @unless ($puedeEntrada) max="-1" @endunless required style="width:90px; padding:.4rem .5rem; border:1px solid #cbd5e1; border-radius:9px; font-size:.85rem;">
+                            @if ($puedeSalida)
+                                <select name="tipo" title="Tipo de salida" style="padding:.4rem; border:1px solid #cbd5e1; border-radius:9px; font-size:.8rem;">
+                                    <option value="ajuste">Ajuste</option><option value="merma">Merma</option><option value="salida">Salida</option>
+                                </select>
+                                <input type="text" name="motivo" placeholder="Motivo (para salidas)" style="flex:1 1 100%; padding:.4rem .5rem; border:1px solid #cbd5e1; border-radius:9px; font-size:.8rem;">
+                            @endif
                             @unless ($sucursalFija)
                                 <select name="id_sucursal" style="flex:1; min-width:0; padding:.4rem; border:1px solid #cbd5e1; border-radius:9px; font-size:.8rem;">
                                     @foreach ($sucursales as $s)<option value="{{ $s->id_sucursal }}">{{ $s->nombre }}</option>@endforeach
@@ -131,7 +143,13 @@
                                         @foreach ($categorias as $c)<option value="{{ $c->id_tipo }}" @selected(($editando ? old('id_tipo') : $producto->id_tipo) == $c->id_tipo)>{{ $c->nombre }}</option>@endforeach
                                     </select>
                                 </div>
-                                <div class="form-group"><label>Precio</label><input type="number" step="0.01" min="0" name="precio" value="{{ $editando ? old('precio') : $producto->precio }}" required></div>
+                                <div class="form-group">
+                                    <label>Precio de venta @unless ($puedePrecio)<span class="muted">(sin permiso para cambiarlo)</span>@endunless</label>
+                                    <input type="number" step="0.01" min="0" name="precio" value="{{ $editando ? old('precio') : $producto->precio }}" required @unless ($puedePrecio) readonly style="background:#f1f5f9;" @endunless>
+                                </div>
+                                <div class="form-group"><label>Precio de compra</label><input type="number" step="0.01" min="0" name="precio_compra" value="{{ $editando ? old('precio_compra') : $producto->precio_compra }}"></div>
+                                <div class="form-group"><label>SKU</label><input type="text" name="sku" value="{{ $editando ? old('sku') : $producto->sku }}"></div>
+                                <div class="form-group"><label>Stock mínimo</label><input type="number" min="0" name="stock_minimo" value="{{ $editando ? old('stock_minimo') : $producto->stock_minimo }}"></div>
                                 <div class="form-group"><label>Descripción</label><input type="text" name="descripcion" value="{{ $editando ? old('descripcion') : $producto->descripcion }}"></div>
                                 <label class="form-check"><input type="checkbox" name="activo" value="1" @checked($editando ? old('activo') : $producto->activo)> A la venta</label>
                                 @if ($editando)

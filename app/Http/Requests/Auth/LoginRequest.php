@@ -50,6 +50,14 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        if (Auth::user()->estado === 'bloqueado') {
+            Auth::guard('web')->logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Tu usuario está bloqueado. Contacta al administrador.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

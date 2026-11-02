@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use App\Models\Progreso;
-use App\Models\Role;
 use App\Models\Rutina;
 use App\Models\User;
+use App\Support\Alcance;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -80,7 +80,7 @@ class RutinaController extends Controller
 
     public function progreso(Request $request, Cliente $cliente): RedirectResponse
     {
-        $this->autorizar($request->user(), $cliente);
+        $this->autorizar($request->user(), $cliente, 'evaluations.manage');
 
         $datos = $request->validateWithBag('progreso', [
             'fecha' => ['required', 'date', 'before_or_equal:today'],
@@ -105,7 +105,7 @@ class RutinaController extends Controller
 
     public function eliminarProgreso(Request $request, Progreso $progreso): RedirectResponse
     {
-        $this->autorizar($request->user(), Cliente::findOrFail($progreso->id_cliente));
+        $this->autorizar($request->user(), Cliente::findOrFail($progreso->id_cliente), 'evaluations.manage');
 
         $progreso->delete();
 
@@ -151,14 +151,11 @@ class RutinaController extends Controller
     }
 
     /**
-     * Admin: cualquier cliente. Coach: solo sus alumnos.
+     * Requiere el permiso y que el cliente esté en su ámbito (todos, o solo sus asignados).
      */
-    private function autorizar(User $user, Cliente $cliente): void
+    private function autorizar(User $user, Cliente $cliente, string $permiso = 'routines.manage'): void
     {
-        abort_unless($user->permite('rutinas.gestionar'), 403);
-
-        if ($user->hasRole(Role::ENTRENADOR)) {
-            abort_unless($user->entrenador && $user->entrenador->esAlumno($cliente), 403, 'Solo puedes gestionar a tus alumnos.');
-        }
+        abort_unless($user->permite($permiso), 403);
+        Alcance::exigirCliente($user, $cliente);
     }
 }

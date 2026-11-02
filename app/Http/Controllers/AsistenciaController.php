@@ -35,7 +35,7 @@ class AsistenciaController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        Permisos::exigir('asistencias.registrar');
+        Permisos::exigir('attendance.create');
 
         $datos = $request->validateWithBag('asistencia', [
             'id_cliente' => ['required', Rule::exists('clientes', 'id_cliente')->where('id_empresa', Tenant::empresaId())],
@@ -69,7 +69,7 @@ class AsistenciaController extends Controller
 
     public function salida(Asistencia $asistencia): RedirectResponse
     {
-        Permisos::exigir('asistencias.registrar');
+        Permisos::exigir('attendance.create');
 
         if ($asistencia->hora_salida) {
             return back()->with('error', 'La salida ya estaba registrada.');

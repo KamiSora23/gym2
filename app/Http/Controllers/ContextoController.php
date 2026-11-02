@@ -31,7 +31,7 @@ class ContextoController extends Controller
 
     public function sucursal(Request $request): RedirectResponse
     {
-        abort_unless($request->user()->isAdmin(), 403);
+        abort_unless(Tenant::puedeCambiarSucursal($request->user()), 403);
 
         $datos = $request->validate(['id_sucursal' => ['nullable', 'integer']]);
         $id = $datos['id_sucursal'] ?? null;

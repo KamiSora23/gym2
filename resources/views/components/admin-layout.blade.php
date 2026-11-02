@@ -12,7 +12,9 @@
     $sucursalActual = \App\Support\Tenant::sucursalId();
     $puede = fn (string $m) => \App\Support\Permisos::puede($usuario, $m);
     $modoPlataforma = $usuario->isSuperAdmin() && ! $empresaActual;
-    $esCoach = $usuario->hasRole(\App\Models\Role::ENTRENADOR);
+    // Solo ve "sus" alumnos quien no tiene acceso a todos los clientes.
+    $soloAsignados = ! $puede('clients.view') && $puede('clients.view_assigned');
+    $esCoach = $soloAsignados && $usuario->entrenador;
 
     $menuPlataforma = [
         'Plataforma' => [
@@ -20,27 +22,38 @@
             ['empresas', 'empresas.index', 'fa-building', 'Empresas'],
             ['usuarios-globales', 'plataforma.usuarios.index', 'fa-users-gear', 'Usuarios globales'],
             ['roles', 'plataforma.roles', 'fa-shield-halved', 'Roles y permisos'],
+            ['auditoria-global', 'plataforma.auditoria', 'fa-clock-rotate-left', 'Auditoría'],
             ['plataforma-config', 'plataforma.configuracion', 'fa-sliders', 'Configuración'],
         ],
     ];
 
+    // Menú de la empresa: [clave, ruta, icono, texto, permisos que lo muestran (cualquiera)].
     $menu = [
-        'Operaciones' => [
-            ['resumen', 'dashboard', 'fa-chart-line', $esCoach ? 'Mi panel' : 'Resumen'],
-            ['ventas', 'ventas.index', 'fa-cart-shopping', 'Ventas'],
-            ['asistencias', 'asistencias.index', 'fa-calendar-check', 'Asistencias'],
-            ['gastos', 'gastos.index', 'fa-file-invoice-dollar', 'Gastos'],
+        'Inicio' => [
+            ['resumen', 'dashboard', 'fa-chart-line', $esCoach ? 'Mi panel' : 'Panel', 'dashboard.view'],
         ],
-        'Gestión' => [
-            ['clientes', 'clientes.index', 'fa-users', $esCoach ? 'Mis alumnos' : 'Clientes'],
-            ['planes', 'planes.index', 'fa-id-card', 'Planes y membresías'],
-            ['catalogo', 'productos.index', 'fa-box-open', 'Catálogo'],
-            ['entrenamiento', 'entrenamiento.index', 'fa-dumbbell', 'Entrenamiento'],
+        'Clientes' => [
+            ['clientes', 'clientes.index', 'fa-users', $soloAsignados ? 'Mis alumnos' : 'Clientes', 'clients.view|clients.view_assigned'],
+            ['planes', 'planes.index', 'fa-id-card', 'Membresías y planes', 'memberships.view'],
+            ['asistencias', 'asistencias.index', 'fa-calendar-check', 'Asistencias', 'attendance.view|attendance.create'],
+        ],
+        'Deportivo' => [
+            ['entrenamiento', 'entrenamiento.index', 'fa-dumbbell', $esCoach ? 'Mis clases' : 'Clases y coaches', 'classes.view|classes.manage_own'],
+            ['nutricion', 'nutricion.index', 'fa-apple-whole', 'Nutrición', 'nutrition.view'],
+        ],
+        'Comercial' => [
+            ['caja', 'caja.index', 'fa-cash-register', $puede('cash.view_all') ? 'Cajas' : 'Mi caja', 'cash.open|cash.view_all|cash.manage'],
+            ['ventas', 'ventas.index', 'fa-cart-shopping', $puede('sales.view') ? 'Ventas' : 'Mis ventas', 'sales.view|sales.view_own|sales.create'],
+            ['gastos', 'gastos.index', 'fa-file-invoice-dollar', 'Gastos', 'expenses.view|expenses.create'],
+            ['catalogo', 'productos.index', 'fa-box-open', 'Productos', 'products.view'],
+            ['kardex', 'inventario.movimientos', 'fa-boxes-stacked', 'Inventario', 'inventory.view'],
         ],
         'Administración' => [
-            ['sucursales', 'sucursales.index', 'fa-store', 'Sucursales'],
-            ['usuarios', 'usuarios.index', 'fa-users-gear', 'Usuarios y roles'],
-            ['configuracion', 'configuracion.index', 'fa-gear', 'Configuración'],
+            ['usuarios', 'usuarios.index', 'fa-user-tie', 'Empleados', 'users.view'],
+            ['roles', 'roles.index', 'fa-shield-halved', 'Roles y permisos', 'roles.manage'],
+            ['sucursales', 'sucursales.index', 'fa-store', 'Sucursales', 'branches.manage'],
+            ['auditoria', 'auditoria.index', 'fa-clock-rotate-left', 'Historial de actividades', 'audit.view'],
+            ['configuracion', 'configuracion.index', 'fa-gear', 'Configuración', 'settings.manage'],
         ],
     ];
 @endphp
@@ -102,7 +115,7 @@
                 </form>
             @endif
 
-            @if ($empresaActual && $usuario->isAdmin() && $sucursales->isNotEmpty())
+            @if ($empresaActual && \App\Support\Tenant::puedeCambiarSucursal($usuario) && $sucursales->isNotEmpty())
                 <form method="POST" action="{{ route('contexto.sucursal') }}" class="context-select" title="Sucursal">
                     @csrf
                     <span><i class="fas fa-store"></i></span>
@@ -170,7 +183,7 @@
                     @endif
 
                     @foreach ($menu as $categoria => $items)
-                        @php $visibles = array_filter($items, fn ($i) => $puede($i[0])); @endphp
+                        @php $visibles = array_filter($items, fn ($i) => $puede($i[4])); @endphp
                         @if ($visibles)
                             <div class="menu-category">{{ $categoria }}</div>
                             @foreach ($visibles as [$clave, $ruta, $iconoItem, $texto])
@@ -248,6 +261,22 @@
                     if (!objetivo.classList.contains('hidden')) {
                         objetivo.querySelector('input:not([type=hidden]):not([disabled]), select, textarea')?.focus();
                     }
+                });
+            });
+
+            // Acciones que requieren un motivo (anulaciones): se pide antes de enviar.
+            document.querySelectorAll('form[data-motivo]').forEach(form => {
+                form.addEventListener('submit', e => {
+                    if (form.querySelector('input[name=motivo]')?.value) return;
+                    const motivo = prompt(form.dataset.motivo);
+                    if (!motivo || motivo.trim().length < 5) {
+                        e.preventDefault();
+                        if (motivo !== null) alert('Escribe un motivo de al menos 5 caracteres.');
+                        return;
+                    }
+                    const campo = form.querySelector('input[name=motivo]') ?? Object.assign(document.createElement('input'), { type: 'hidden', name: 'motivo' });
+                    campo.value = motivo.trim();
+                    form.appendChild(campo);
                 });
             });
 

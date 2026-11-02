@@ -10,13 +10,14 @@ class Membresia extends Model
 
     protected $primaryKey = 'id_membresia';
 
-    protected $fillable = ['id_cliente', 'id_plan', 'id_venta', 'fecha_inicio', 'fecha_fin', 'estado'];
+    protected $fillable = ['id_cliente', 'id_plan', 'id_venta', 'fecha_inicio', 'fecha_fin', 'estado', 'congelada_desde', 'dias_congelados'];
 
     protected function casts(): array
     {
         return [
             'fecha_inicio' => 'date',
             'fecha_fin' => 'date',
+            'congelada_desde' => 'date',
         ];
     }
 

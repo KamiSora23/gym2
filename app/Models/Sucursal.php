@@ -20,6 +20,22 @@ class Sucursal extends Model
         return ['activo' => 'boolean'];
     }
 
+    protected static function booted(): void
+    {
+        // Cada sucursal nueva nace con su caja principal.
+        static::created(fn (self $sucursal) => Caja::create([
+            'id_empresa' => $sucursal->id_empresa,
+            'id_sucursal' => $sucursal->id_sucursal,
+            'nombre' => 'Caja principal',
+            'activo' => true,
+        ]));
+    }
+
+    public function cajas()
+    {
+        return $this->hasMany(Caja::class, 'id_sucursal', 'id_sucursal');
+    }
+
     public function usuarios()
     {
         return $this->hasMany(User::class, 'id_sucursal', 'id_sucursal');

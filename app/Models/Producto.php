@@ -14,12 +14,14 @@ class Producto extends Model
 
     protected $primaryKey = 'id_producto';
 
-    protected $fillable = ['id_empresa', 'id_tipo', 'nombre', 'descripcion', 'precio', 'activo'];
+    protected $fillable = ['id_empresa', 'id_tipo', 'nombre', 'descripcion', 'precio', 'activo', 'sku', 'precio_compra', 'stock_minimo'];
 
     protected function casts(): array
     {
         return [
             'precio' => 'decimal:2',
+            'precio_compra' => 'decimal:2',
+            'stock_minimo' => 'integer',
             'activo' => 'boolean',
         ];
     }
@@ -27,6 +29,11 @@ class Producto extends Model
     public function tipo()
     {
         return $this->belongsTo(TipoProducto::class, 'id_tipo', 'id_tipo');
+    }
+
+    public function movimientos()
+    {
+        return $this->hasMany(InventarioMovimiento::class, 'id_producto', 'id_producto')->latest('id');
     }
 
     public function inventario()

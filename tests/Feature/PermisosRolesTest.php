@@ -4,6 +4,7 @@ use App\Models\Clase;
 use App\Models\Cliente;
 use App\Models\Entrenador;
 use App\Models\Inventario;
+use App\Models\InventarioMovimiento;
 use App\Models\Membresia;
 use App\Models\Plan;
 use App\Models\Producto;
@@ -162,15 +163,21 @@ test('a coach creates routines and records progress for their students only', fu
     $this->actingAs($this->usuarioCoach)->post("/clientes/{$ajeno->id_cliente}/progreso", ['fecha' => today()->toDateString(), 'peso' => 70])->assertForbidden();
 });
 
-test('receptionists cannot manage routines or coaches but can manage any class', function () {
+test('receptionists view the schedule and enroll clients, but do not manage classes, coaches or routines', function () {
     $recepcion = User::factory()->conRol(Role::RECEPCIONISTA)->create($this->sede);
     $cliente = Cliente::create($this->e + ['nombre' => 'Ana', 'dni' => '1']);
+    $clase = Clase::create($this->sede + ($this->clase)(['id_entrenador' => $this->otroCoach->id_entrenador]));
 
+    $this->actingAs($recepcion)->get('/entrenamiento')->assertOk();
     $this->actingAs($recepcion)->post("/clientes/{$cliente->id_cliente}/rutinas", ['nombre' => 'X', 'ejercicios' => [['ejercicio' => 'Y']]])->assertForbidden();
     $this->actingAs($recepcion)->post('/entrenadores', ['nombre' => 'Nuevo'])->assertForbidden();
-    $this->actingAs($recepcion)->post('/clases', ($this->clase)(['id_entrenador' => $this->otroCoach->id_entrenador]))->assertSessionHasNoErrors();
+    $this->actingAs($recepcion)->post('/clases', ($this->clase)(['dia_semana' => 2]))->assertForbidden();
+    $this->actingAs($recepcion)->post("/clases/{$clase->id_clase}/inscripciones", ['id_cliente' => $cliente->id_cliente])->assertSessionHas('success');
 
-    expect(Clase::first()->id_entrenador)->toBe($this->otroCoach->id_entrenador);
+    // Un gerente sí gestiona cualquier clase.
+    $gerente = User::factory()->conRol(Role::GERENTE)->create(['id_empresa' => $this->admin->id_empresa, 'id_sucursal' => null]);
+    $this->actingAs($gerente)->post('/clases', ($this->clase)(['dia_semana' => 2, 'id_entrenador' => $this->otroCoach->id_entrenador]))->assertSessionHasNoErrors();
+    expect(Clase::count())->toBe(2);
 });
 
 // ---------- Otros roles ----------
@@ -182,17 +189,25 @@ test('only the admin edits plans', function () {
     $this->actingAs($recepcion)->post('/planes', ['nombre' => 'Hack', 'precio' => 1, 'duracion_dias' => 30])->assertForbidden();
 });
 
-test('the cashier can add stock but not remove it', function () {
+test('the warehouse keeper manages stock; the cashier only sells', function () {
     $cajera = User::factory()->conRol(Role::CAJERA)->create($this->sede);
+    $almacen = User::factory()->conRol(Role::ALMACENERO)->create($this->sede);
     $tipo = TipoProducto::create($this->e + ['nombre' => 'Bebidas']);
     $producto = Producto::create($this->e + ['id_tipo' => $tipo->id_tipo, 'nombre' => 'Agua', 'precio' => 2, 'activo' => true]);
     Inventario::create(['id_producto' => $producto->id_producto, 'id_sucursal' => $cajera->id_sucursal, 'cantidad' => 10]);
 
-    $this->actingAs($cajera)->post("/catalogo/{$producto->id_producto}/stock", ['cantidad' => 5])->assertSessionHas('success');
-    $this->actingAs($cajera)->post("/catalogo/{$producto->id_producto}/stock", ['cantidad' => -3])->assertForbidden();
+    $this->actingAs($cajera)->post("/catalogo/{$producto->id_producto}/stock", ['cantidad' => 5])->assertForbidden();
     $this->actingAs($cajera)->post('/catalogo', ['nombre' => 'X', 'id_tipo' => $tipo->id_tipo, 'precio' => 1])->assertForbidden();
 
-    expect($producto->fresh()->stockEn($cajera->id_sucursal))->toBe(15);
+    $this->actingAs($almacen)->post("/catalogo/{$producto->id_producto}/stock", ['cantidad' => 5])->assertSessionHas('success');
+    $this->actingAs($almacen)->post("/catalogo/{$producto->id_producto}/stock", ['cantidad' => -3, 'tipo' => 'merma', 'motivo' => 'Vencidas'])->assertSessionHas('success');
+
+    // El almacenero no cambia precios de venta.
+    $this->actingAs($almacen)->put("/catalogo/{$producto->id_producto}", ['nombre' => 'Agua', 'id_tipo' => $tipo->id_tipo, 'precio' => 99, 'activo' => 1])->assertSessionHas('error');
+
+    expect($producto->fresh()->stockEn($cajera->id_sucursal))->toBe(12)
+        ->and((float) $producto->fresh()->precio)->toBe(2.0)
+        ->and(InventarioMovimiento::count())->toBe(2);
 });
 
 test('the cashier registers check-ins and clients but cannot assign a coach', function () {
@@ -243,7 +258,7 @@ test('the roles page lists the action permissions', function () {
     $super = User::factory()->superAdmin()->create();
 
     $this->actingAs($super)->get('/plataforma/roles')->assertOk()
-        ->assertSee('Acciones permitidas')
+        ->assertSee('Gestión deportiva')
         ->assertSee('Crear y editar sus propias clases')
-        ->assertSee('Definir su disponibilidad semanal');
+        ->assertSee('Definir su propia disponibilidad');
 });

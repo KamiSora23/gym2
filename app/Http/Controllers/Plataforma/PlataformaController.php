@@ -5,9 +5,10 @@ namespace App\Http\Controllers\Plataforma;
 use App\Http\Controllers\Controller;
 use App\Models\Configuracion;
 use App\Models\Empresa;
+use App\Models\Permiso;
 use App\Models\Role;
 use App\Models\User;
-use App\Support\Permisos;
+use App\Support\CatalogoPermisos;
 use App\Support\Tema;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -81,9 +82,11 @@ class PlataformaController extends Controller
         $conteo = User::query()->groupBy('role_id')->selectRaw('role_id, count(*) as valor')->pluck('valor', 'role_id');
 
         return view('plataforma.roles', [
-            'roles' => Role::orderBy('id')->get()->each(fn ($r) => $r->usuarios_count = (int) ($conteo[$r->id] ?? 0)),
-            'modulos' => Permisos::MODULOS,
-            'nombresModulos' => Permisos::NOMBRES,
+            'roles' => Role::whereNull('id_empresa')->with('permisos:id,codigo')->orderBy('id')->get()
+                ->each(fn ($r) => $r->usuarios_count = (int) ($conteo[$r->id] ?? 0)),
+            'rolesPropios' => Role::whereNotNull('id_empresa')->with('empresa')->withCount('permisos')->orderBy('id_empresa')->get(),
+            'permisos' => Permiso::orderBy('id')->get()->groupBy('grupo'),
+            'grupos' => CatalogoPermisos::GRUPOS,
         ]);
     }
 

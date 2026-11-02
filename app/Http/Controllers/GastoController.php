@@ -39,7 +39,7 @@ class GastoController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        Permisos::exigir('gastos.registrar');
+        Permisos::exigir('expenses.create');
 
         $datos = $request->validateWithBag('gasto', [
             'concepto' => ['required', 'string', 'max:255'],
@@ -59,7 +59,7 @@ class GastoController extends Controller
 
     public function destroy(Request $request, Gasto $gasto): RedirectResponse
     {
-        Permisos::exigir('gastos.eliminar');
+        Permisos::exigir('expenses.delete');
 
         $gasto->delete();
 

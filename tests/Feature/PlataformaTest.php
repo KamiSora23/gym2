@@ -20,7 +20,7 @@ test('super admin lands on the platform panel and sees only platform menus', fun
         ->assertSee('Panel de plataforma')
         ->assertSee('Usuarios globales')
         ->assertSee('Roles y permisos')
-        ->assertDontSee('Planes y membresías'); // menú de empresa oculto en modo plataforma
+        ->assertDontSee('Membresías y planes'); // menú de empresa oculto en modo plataforma
 
     foreach (['/plataforma/usuarios', '/plataforma/roles', '/plataforma/configuracion', '/empresas'] as $url) {
         $this->get($url)->assertOk();
@@ -35,7 +35,7 @@ test('entering a company shows the company menu and a way back; platform pages l
     $this->get('/dashboard')->assertOk()
         ->assertSee('Modo empresa')
         ->assertSee('Volver a la plataforma')
-        ->assertSee('Planes y membresías');
+        ->assertSee('Membresías y planes');
 
     // Visitar una página de plataforma sale de la empresa.
     $this->get('/plataforma')->assertOk();
@@ -104,6 +104,7 @@ test('roles page shows the permission matrix', function () {
     $this->seed(RolesSeeder::class);
 
     $this->actingAs($this->super)->get('/plataforma/roles')->assertOk()
-        ->assertSee('Matriz de permisos')
-        ->assertSee('Entrenador');
+        ->assertSee('Administración y seguridad')
+        ->assertSee('Entrenador')
+        ->assertSee('Nutricionista');
 });

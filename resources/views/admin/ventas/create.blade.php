@@ -16,6 +16,14 @@
         $clienteInicial = old('id_cliente', request('cliente'));
     @endphp
 
+    @unless ($cajaAbierta)
+        <div class="alert alert-info">
+            <i class="fas fa-cash-register"></i>
+            No tienes una caja abierta: solo podrás registrar la venta como <strong>pendiente de cobro</strong>.
+            @if (Auth::user()->permite('cash.open'))<a href="{{ route('caja.index') }}">Abrir mi caja</a>@endif
+        </div>
+    @endunless
+
     @if ($errors->any())
         @include('admin.partials.errores')
         <div style="height:1rem;"></div>
@@ -104,8 +112,8 @@
             <div class="form-group">
                 <label>Estado del pago</label>
                 <select name="estado">
-                    <option value="completado" @selected(old('estado') !== 'pendiente')>Pagada</option>
-                    <option value="pendiente" @selected(old('estado') === 'pendiente')>Pendiente de cobro</option>
+                    <option value="completado" @selected(old('estado') !== 'pendiente' && $cajaAbierta) @disabled(! $cajaAbierta)>Pagada</option>
+                    <option value="pendiente" @selected(old('estado') === 'pendiente' || ! $cajaAbierta)>Pendiente de cobro</option>
                 </select>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%; padding:.9rem;"><i class="fas fa-check"></i> Registrar venta</button>

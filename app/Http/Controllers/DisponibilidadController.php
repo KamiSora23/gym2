@@ -106,7 +106,7 @@ class DisponibilidadController extends Controller
         $propio = $user->entrenador && $user->entrenador->is($entrenador);
 
         abort_unless(
-            $user->permite('disponibilidad.todas') || ($propio && $user->permite('disponibilidad.propia')),
+            $user->permite('trainers.availability') || ($propio && $user->permite('trainers.availability_own')),
             403,
             'Solo puedes editar tu propia disponibilidad.'
         );

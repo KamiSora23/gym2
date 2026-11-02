@@ -21,6 +21,7 @@ class Cliente extends Model
         'correo',
         'user_id',
         'id_entrenador',
+        'id_nutricionista',
     ];
 
     public function user()
@@ -31,6 +32,16 @@ class Cliente extends Model
     public function entrenador()
     {
         return $this->belongsTo(Entrenador::class, 'id_entrenador', 'id_entrenador');
+    }
+
+    public function nutricionista()
+    {
+        return $this->belongsTo(User::class, 'id_nutricionista');
+    }
+
+    public function planesNutricionales()
+    {
+        return $this->hasMany(PlanNutricional::class, 'id_cliente', 'id_cliente')->latest();
     }
 
     public function membresias()

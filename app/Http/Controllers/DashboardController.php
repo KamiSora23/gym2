@@ -7,10 +7,14 @@ use App\Models\Clase;
 use App\Models\Cliente;
 use App\Models\Gasto;
 use App\Models\Ingreso;
+use App\Models\InventarioMovimiento;
 use App\Models\Membresia;
+use App\Models\PlanNutricional;
 use App\Models\Producto;
-use App\Models\Role;
 use App\Models\Venta;
+use App\Support\Alcance;
+use App\Support\CajaService;
+use App\Support\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -26,11 +30,15 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
+        // El panel se elige por permisos, así también funciona con roles propios de cada empresa.
         return match (true) {
-            $user->isAdmin() => $this->administracion(),
-            $user->hasRole(Role::RECEPCIONISTA) => $this->recepcion(),
-            $user->hasRole(Role::CAJERA) => $this->caja(),
-            $user->hasRole(Role::ENTRENADOR) => $this->coach($user),
+            $user->permite('reports.financial') => $this->administracion(),
+            $user->permite('enrollments.manage') && $user->permite('attendance.create') => $this->recepcion(),
+            $user->permite('cash.open') => $this->caja(),
+            $user->permite('classes.manage_own') => $this->coach($user),
+            $user->permite('nutrition.manage') => $this->nutricion($user),
+            $user->permite('inventory.view') => $this->almacen(),
+            default => view('admin.paneles.basico'),
         };
     }
 
@@ -44,6 +52,7 @@ class DashboardController extends Controller
         $asistenciasHoy = Asistencia::deSucursal()->with('cliente.membresiaActiva')->whereDate('fecha', $hoy)->orderByDesc('hora_entrada')->get();
 
         return view('admin.paneles.recepcion', [
+            'sesion' => CajaService::sesionAbierta(auth()->user())?->load('movimientos'),
             'asistenciasHoy' => $asistenciasHoy,
             'clasesHoy' => Clase::deSucursal()->with('entrenador')->withCount('clientes')->where('dia_semana', $hoy->dayOfWeekIso)->orderBy('hora_inicio')->get(),
             'porVencer' => Membresia::with(['cliente', 'plan'])->whereHas('cliente')
@@ -69,6 +78,7 @@ class DashboardController extends Controller
             ->sortBy('stock_actual');
 
         return view('admin.paneles.caja', [
+            'sesion' => CajaService::sesionAbierta(auth()->user())?->load('movimientos'),
             'ventasHoy' => $ventasHoy,
             'cobradoHoy' => (float) $ventasHoy->where('estado', 'completado')->sum('total'),
             'porMetodo' => $ventasHoy->where('estado', 'completado')->groupBy('metodo_pago')->map->sum('total'),
@@ -106,6 +116,43 @@ class DashboardController extends Controller
             'alumnos' => $alumnos,
             'personales' => $perfil ? $alumnos->where('id_entrenador', $perfil->id_entrenador)->count() : 0,
             'asistieronHoy' => Asistencia::with('cliente')->whereIn('id_cliente', $idsAlumnos)->whereDate('fecha', $hoy)->orderByDesc('hora_entrada')->get(),
+        ]);
+    }
+
+    /**
+     * Nutricionista: sus pacientes y planes nutricionales.
+     */
+    private function nutricion($user): View
+    {
+        $pacientes = Alcance::clientes($user, Cliente::query())
+            ->with(['membresiaActiva', 'planesNutricionales'])
+            ->orderBy('nombre')
+            ->get();
+
+        return view('admin.paneles.nutricion', [
+            'pacientes' => $pacientes,
+            'conPlan' => $pacientes->filter(fn ($c) => $c->planesNutricionales->where('activo', true)->isNotEmpty())->count(),
+            'ultimosPlanes' => PlanNutricional::with('nutricionista')
+                ->whereIn('id_cliente', $pacientes->pluck('id_cliente'))
+                ->latest()->limit(6)->get(),
+        ]);
+    }
+
+    /**
+     * Almacén: stock bajo y últimos movimientos de inventario.
+     */
+    private function almacen(): View
+    {
+        $sucursal = Tenant::sucursalId();
+        $productos = Producto::with(['inventario', 'tipo'])->where('activo', true)->orderBy('nombre')->get();
+
+        return view('admin.paneles.almacen', [
+            'stockBajo' => $productos->filter(fn ($p) => $p->stockEn($sucursal) <= $p->stock_minimo)->values(),
+            'totalProductos' => $productos->count(),
+            'unidades' => $productos->sum(fn ($p) => $p->stockEn($sucursal)),
+            'valorizado' => $productos->sum(fn ($p) => $p->stockEn($sucursal) * (float) $p->precio_compra),
+            'movimientos' => InventarioMovimiento::with(['producto', 'usuario'])->deSucursal()->orderByDesc('id')->limit(10)->get(),
+            'entradasHoy' => InventarioMovimiento::deSucursal()->where('tipo', 'entrada')->whereDate('created_at', today())->sum('cantidad'),
         ]);
     }
 

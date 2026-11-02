@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Caja;
+use App\Models\CajaSesion;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +47,23 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Abre una sesión de caja para el usuario en la caja de su sucursal (o la primera de su empresa).
+ */
+function abrirCaja(User $user, float $monto = 100): CajaSesion
 {
-    // ..
+    $caja = Caja::withoutGlobalScopes()
+        ->where('id_empresa', $user->id_empresa)
+        ->when($user->id_sucursal, fn ($q) => $q->where('id_sucursal', $user->id_sucursal))
+        ->firstOrFail();
+
+    return CajaSesion::withoutGlobalScopes()->create([
+        'id_empresa' => $caja->id_empresa,
+        'id_sucursal' => $caja->id_sucursal,
+        'id_caja' => $caja->id_caja,
+        'user_id' => $user->id,
+        'monto_inicial' => $monto,
+        'abierta_en' => now(),
+        'estado' => 'abierta',
+    ]);
 }

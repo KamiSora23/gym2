@@ -6,6 +6,8 @@
         <a href="{{ route('ventas.create') }}" class="btn btn-primary"><i class="fas fa-cash-register"></i> Nueva venta</a>
     </x-slot>
 
+    @include('admin.partials.estado-caja')
+
     <div class="stats-grid">
         <div class="stat-card green"><div class="stat-title">Cobrado hoy</div><div class="stat-value">{{ dinero($cobradoHoy) }}</div><div class="stat-icon"><i class="fas fa-sack-dollar"></i></div><div class="stat-hint">{{ $ventasHoy->where('estado', 'completado')->count() }} ventas</div></div>
         <div class="stat-card orange"><div class="stat-title">Por cobrar</div><div class="stat-value">{{ dinero($pendientes->sum('total')) }}</div><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-hint">{{ $pendientes->count() }} ventas pendientes</div></div>

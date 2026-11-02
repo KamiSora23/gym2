@@ -116,17 +116,20 @@ class DemoSeeder extends Seeder
         $sucursales = collect($nombresSucursales)->map(fn ($nombre) => Sucursal::withoutGlobalScopes()->firstOrCreate($e + ['nombre' => $nombre], ['activo' => true]));
         $principal = $sucursales->first();
 
-        foreach ([['Recepción', 'recepcionista'], ['Caja', 'cajera']] as [$nombre, $rol]) {
+        foreach ([['Recepción', 'recepcionista'], ['Caja', 'cajera'], ['Gerencia', 'gerente'], ['Almacén', 'almacenero'], ['Nutrición', 'nutricionista']] as [$nombre, $rol]) {
             $slug = strtolower(preg_replace('/\W+/', '', $empresa->nombre));
             User::firstOrCreate(['email' => "{$rol}@{$slug}.test"], [
                 'name' => "{$nombre} {$empresa->nombre}",
                 'password' => '12345678',
                 'role_id' => Role::idDe($rol),
                 'id_empresa' => $empresa->id_empresa,
-                'id_sucursal' => $principal->id_sucursal,
+                // El gerente supervisa toda la empresa; el resto trabaja en la sede principal.
+                'id_sucursal' => $rol === 'gerente' ? null : $principal->id_sucursal,
                 'email_verified_at' => now(),
             ]);
         }
+
+        $nutricionista = User::where('email', "nutricionista@{$slug}.test")->first();
 
         $planes = collect([
             ['Mensual', 120, 30, 'Acceso ilimitado a sala de máquinas'],
@@ -189,6 +192,7 @@ class DemoSeeder extends Seeder
                 'dni' => (string) (70000000 + $empresa->id_empresa * 1000 + $i),
                 'telefono' => '9'.random_int(10000000, 99999999),
                 'id_entrenador' => $i % 3 === 0 ? $coaches[$i % 3]->id_entrenador : null,
+                'id_nutricionista' => $i % 2 === 0 ? $nutricionista?->id : null,
             ]);
 
             $clases->random(2)->each(fn ($clase) => $clase->clientes()->syncWithoutDetaching([$cliente->id_cliente]));

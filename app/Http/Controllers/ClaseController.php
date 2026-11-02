@@ -25,7 +25,10 @@ class ClaseController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        $miPerfil = $user->hasRole(Role::ENTRENADOR) ? $user->entrenador?->load('disponibilidad') : null;
+        // Quien gestiona "sus propias" clases y está vinculado a un coach trabaja con su perfil.
+        $miPerfil = ! $user->permite('classes.manage') && $user->permite('classes.manage_own')
+            ? $user->entrenador?->load('disponibilidad')
+            : null;
 
         // Un entrenador ve por defecto solo sus clases.
         $soloMias = $miPerfil && ! $request->boolean('todas');
@@ -55,9 +58,9 @@ class ClaseController extends Controller
                 ->get(),
             'miPerfil' => $miPerfil,
             'soloMias' => $soloMias,
-            'puedeTodas' => $user->permite('clases.todas'),
-            'puedePropias' => $user->permite('clases.propias') && $miPerfil,
-            'puedeCoaches' => $user->permite('coaches.gestionar'),
+            'puedeTodas' => $user->permite('classes.manage'),
+            'puedePropias' => $user->permite('classes.manage_own') && $miPerfil,
+            'puedeCoaches' => $user->permite('trainers.manage'),
             'puedeEditarClase' => fn (Clase $c) => $this->puedeGestionar($user, $c),
             'puedeInscribir' => fn (Clase $c) => $this->puedeInscribir($user, $c),
         ]);
@@ -68,8 +71,8 @@ class ClaseController extends Controller
         $user = $request->user();
         $datos = $this->validar($request);
 
-        if (! $user->permite('clases.todas')) {
-            abort_unless($user->permite('clases.propias') && $user->entrenador, 403, 'No puedes crear clases.');
+        if (! $user->permite('classes.manage')) {
+            abort_unless($user->permite('classes.manage_own') && $user->entrenador, 403, 'No puedes crear clases.');
 
             // El coach siempre crea la clase a su nombre y en su sucursal.
             $datos['id_entrenador'] = $user->entrenador->id_entrenador;
@@ -91,7 +94,7 @@ class ClaseController extends Controller
 
         $datos = $this->validar($request);
 
-        if (! $user->permite('clases.todas')) {
+        if (! $user->permite('classes.manage')) {
             $datos['id_entrenador'] = $clase->id_entrenador;
             $datos['id_sucursal'] = $clase->id_sucursal;
         }
@@ -149,14 +152,14 @@ class ClaseController extends Controller
 
     private function puedeGestionar(User $user, Clase $clase): bool
     {
-        return $user->permite('clases.todas')
-            || ($user->permite('clases.propias') && $user->entrenador && (int) $clase->id_entrenador === $user->entrenador->id_entrenador);
+        return $user->permite('classes.manage')
+            || ($user->permite('classes.manage_own') && $user->entrenador && (int) $clase->id_entrenador === $user->entrenador->id_entrenador);
     }
 
     private function puedeInscribir(User $user, Clase $clase): bool
     {
-        return $user->permite('inscripciones.todas')
-            || ($user->permite('inscripciones.propias') && $user->entrenador && (int) $clase->id_entrenador === $user->entrenador->id_entrenador);
+        return $user->permite('enrollments.manage')
+            || ($user->permite('enrollments.manage_own') && $user->entrenador && (int) $clase->id_entrenador === $user->entrenador->id_entrenador);
     }
 
     /**

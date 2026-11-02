@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Auditoria;
+use App\Models\CajaSesion;
 use App\Models\Cliente;
 use App\Models\Ingreso;
-use App\Models\Inventario;
 use App\Models\Membresia;
 use App\Models\Plan;
 use App\Models\Producto;
 use App\Models\Venta;
+use App\Support\CajaService;
+use App\Support\Inventario;
 use App\Support\Permisos;
 use App\Support\Tenant;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +28,11 @@ class VentaController extends Controller
 {
     public function index(Request $request): View
     {
+        // Quien solo tiene "sales.view_own" ve únicamente sus propias ventas.
+        $soloPropias = ! Permisos::puede($request->user(), 'sales.view');
+
         $filtro = fn ($q) => $q->deSucursal()
+            ->when($soloPropias, fn ($w) => $w->where('user_id', $request->user()->id))
             ->when($request->filled('estado'), fn ($w) => $w->where('estado', $request->estado))
             ->when($request->filled('desde'), fn ($w) => $w->whereDate('fecha', '>=', $request->desde))
             ->when($request->filled('hasta'), fn ($w) => $w->whereDate('fecha', '<=', $request->hasta));
@@ -37,7 +44,8 @@ class VentaController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $validas = fn () => Venta::deSucursal()->where('estado', '!=', 'anulado');
+        $validas = fn () => Venta::deSucursal()->where('estado', '!=', 'anulado')
+            ->when($soloPropias, fn ($w) => $w->where('user_id', $request->user()->id));
         $semana = [today()->startOfWeek()->toDateString(), today()->endOfWeek()->toDateString()];
         $numSemana = $validas()->whereBetween('fecha', $semana)->count();
         $totalSemana = (float) $validas()->whereBetween('fecha', $semana)->sum('total');
@@ -49,14 +57,18 @@ class VentaController extends Controller
                 'semana' => $totalSemana,
                 'transacciones' => $numSemana,
                 'ticket' => $numSemana ? $totalSemana / $numSemana : 0,
-                'pendientes' => Venta::deSucursal()->where('estado', 'pendiente')->count(),
+                'pendientes' => Venta::deSucursal()->where('estado', 'pendiente')
+                    ->when($soloPropias, fn ($w) => $w->where('user_id', $request->user()->id))->count(),
             ],
+            'soloPropias' => $soloPropias,
+            'cajaAbierta' => CajaService::sesionAbierta($request->user()),
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('admin.ventas.create', [
+            'cajaAbierta' => CajaService::sesionAbierta($request->user()),
             'clientes' => Cliente::with('membresiaActiva.plan')->orderBy('nombre')->get(),
             'productos' => Producto::with('inventario')->where('activo', true)->orderBy('nombre')->get(),
             'planes' => Plan::where('activo', true)->orderBy('precio')->get(),
@@ -66,7 +78,7 @@ class VentaController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        Permisos::exigir('ventas.vender');
+        Permisos::exigir('sales.create');
 
         $empresaId = Tenant::empresaId();
 
@@ -97,32 +109,21 @@ class VentaController extends Controller
             throw ValidationException::withMessages(['id_cliente' => 'Para vender una membresía debes elegir un cliente.']);
         }
 
-        $sucursalId = Tenant::sucursalParaRegistro($datos['id_sucursal'] ?? null);
+        // Una venta pagada entra a la caja del vendedor: sin caja abierta no se puede cobrar.
+        $sesion = $datos['estado'] === 'completado' ? CajaService::exigirSesion($request->user(), 'metodo_pago') : null;
+
+        $sucursalId = $sesion?->id_sucursal ?? Tenant::sucursalParaRegistro($datos['id_sucursal'] ?? null);
 
         if (! $sucursalId) {
             throw ValidationException::withMessages(['id_sucursal' => 'La empresa no tiene sucursales activas.']);
         }
 
-        $venta = DB::transaction(function () use ($datos, $items, $sucursalId, $request) {
+        $venta = DB::transaction(function () use ($datos, $items, $sucursalId, $request, $sesion) {
             $productos = Producto::whereIn('id_producto', $items->pluck('id_producto'))->get()->keyBy('id_producto');
             $lineas = [];
 
             foreach ($items as $item) {
                 $producto = $productos[$item['id_producto']];
-
-                // Se bloquea la fila de stock para evitar vender dos veces la misma unidad.
-                $stock = Inventario::where('id_producto', $producto->id_producto)
-                    ->where('id_sucursal', $sucursalId)
-                    ->lockForUpdate()
-                    ->first();
-
-                if (! $stock || $stock->cantidad < $item['cantidad']) {
-                    throw ValidationException::withMessages([
-                        'items' => "Stock insuficiente de {$producto->nombre} (disponible: ".($stock->cantidad ?? 0).').',
-                    ]);
-                }
-
-                $stock->decrement('cantidad', $item['cantidad']);
 
                 $lineas[] = [
                     'id_producto' => $producto->id_producto,
@@ -153,17 +154,25 @@ class VentaController extends Controller
                 'total' => collect($lineas)->sum('subtotal'),
                 'estado' => $datos['estado'],
                 'metodo_pago' => $datos['metodo_pago'],
+                'id_sesion' => $sesion?->id_sesion,
             ]);
 
             $venta->detalles()->createMany($lineas);
+
+            // Descuenta el stock y deja el movimiento en el kardex (bloquea la fila: no se vende dos veces).
+            foreach ($items as $item) {
+                Inventario::mover($productos[$item['id_producto']], $sucursalId, -$item['cantidad'], 'venta', null, $venta);
+            }
 
             if ($plan) {
                 $this->crearMembresia($venta, $plan);
             }
 
-            if ($venta->estado === 'completado') {
-                $this->registrarIngreso($venta);
+            if ($sesion) {
+                $this->cobrarEnCaja($venta, $sesion, 'venta');
             }
+
+            Auditoria::registrar('venta.creada', "Venta {$venta->folio} por ".dinero($venta->total).($sesion ? '' : ' (pendiente de cobro)'), $venta);
 
             return $venta;
         });
@@ -171,9 +180,17 @@ class VentaController extends Controller
         return redirect()->route('ventas.show', $venta)->with('success', "Venta {$venta->folio} registrada correctamente.");
     }
 
-    public function show(Venta $venta): View
+    public function show(Request $request, Venta $venta): View
     {
-        $venta->load(['detalles', 'cliente', 'vendedor', 'sucursal', 'membresias.plan']);
+        abort_unless(
+            Permisos::puede($request->user(), 'sales.view') || (int) $venta->user_id === $request->user()->id,
+            403,
+            'Solo puedes ver tus propias ventas.'
+        );
+
+        Tenant::exigirSucursal($venta->id_sucursal);
+
+        $venta->load(['detalles', 'cliente', 'vendedor', 'sucursal', 'membresias.plan', 'anuladaPor']);
 
         return view('admin.ventas.show', compact('venta'));
     }
@@ -181,46 +198,71 @@ class VentaController extends Controller
     /**
      * Marca como pagada una venta pendiente.
      */
-    public function cobrar(Venta $venta): RedirectResponse
+    public function cobrar(Request $request, Venta $venta): RedirectResponse
     {
-        Permisos::exigir('ventas.cobrar');
+        Permisos::exigir('payments.create');
+        Tenant::exigirSucursal($venta->id_sucursal);
 
         if ($venta->estado !== 'pendiente') {
             return back()->with('error', 'Solo se pueden cobrar ventas pendientes.');
         }
 
-        DB::transaction(function () use ($venta) {
-            $venta->update(['estado' => 'completado']);
-            $this->registrarIngreso($venta);
+        $sesion = CajaService::exigirSesion($request->user());
+
+        DB::transaction(function () use ($venta, $sesion) {
+            $venta->update(['estado' => 'completado', 'id_sesion' => $sesion->id_sesion]);
+            $this->cobrarEnCaja($venta, $sesion, 'cobro');
         });
+
+        Auditoria::registrar('venta.cobrada', "Cobró la venta {$venta->folio} por ".dinero($venta->total), $venta);
 
         return back()->with('success', "Venta {$venta->folio} cobrada.");
     }
 
     /**
-     * Anula la venta: devuelve el stock, elimina el ingreso y cancela la membresía.
+     * Anula la venta conservando su historial: devuelve el stock, saca el dinero de la caja
+     * de quien anula, elimina el ingreso, cancela la membresía y registra quién y por qué.
      */
     public function anular(Request $request, Venta $venta): RedirectResponse
     {
-        Permisos::exigir('ventas.anular');
+        Permisos::exigir('sales.cancel');
+        Tenant::exigirSucursal($venta->id_sucursal);
 
         if ($venta->estado === 'anulado') {
             return back()->with('error', 'La venta ya estaba anulada.');
         }
 
-        DB::transaction(function () use ($venta) {
+        $datos = $request->validate(['motivo' => ['required', 'string', 'min:5', 'max:200']], [
+            'motivo.required' => 'Indica el motivo de la anulación.',
+        ]);
+
+        // Si ya se había cobrado, la devolución sale de la caja de quien anula.
+        $sesion = $venta->estado === 'completado' ? CajaService::exigirSesion($request->user(), 'motivo') : null;
+
+        DB::transaction(function () use ($venta, $datos, $sesion, $request) {
             foreach ($venta->detalles()->whereNotNull('id_producto')->get() as $detalle) {
                 $producto = Producto::withoutGlobalScopes()->find($detalle->id_producto);
 
                 if ($producto) {
-                    ProductoController::ajustarStock($producto, $venta->id_sucursal, $detalle->cantidad);
+                    Inventario::mover($producto, $venta->id_sucursal, $detalle->cantidad, 'anulacion', $datos['motivo'], $venta);
                 }
+            }
+
+            if ($sesion) {
+                CajaService::egreso($sesion, (float) $venta->total, $venta->metodo_pago, 'anulacion', "Anulación venta {$venta->folio}", $venta);
             }
 
             $venta->ingreso()->delete();
             $venta->membresias()->update(['estado' => 'anulado']);
-            $venta->update(['estado' => 'anulado']);
+            $venta->update([
+                'estado' => 'anulado',
+                'anulada_por' => $request->user()->id,
+                'anulada_en' => now(),
+                'motivo_anulacion' => $datos['motivo'],
+            ]);
         });
+
+        Auditoria::registrar('venta.anulada', "Anuló la venta {$venta->folio} (".dinero($venta->total)."): {$datos['motivo']}", $venta);
 
         return back()->with('success', "Venta {$venta->folio} anulada. El stock fue devuelto.");
     }
@@ -246,6 +288,15 @@ class VentaController extends Controller
             'fecha_fin' => $inicio->copy()->addDays($plan->duracion_dias - 1),
             'estado' => 'activo',
         ]);
+    }
+
+    /**
+     * El cobro entra a la caja del empleado y se refleja en los ingresos de la empresa.
+     */
+    private function cobrarEnCaja(Venta $venta, CajaSesion $sesion, string $origen): void
+    {
+        CajaService::ingreso($sesion, (float) $venta->total, $venta->metodo_pago, $origen, "Venta {$venta->folio}", $venta);
+        $this->registrarIngreso($venta);
     }
 
     private function registrarIngreso(Venta $venta): void

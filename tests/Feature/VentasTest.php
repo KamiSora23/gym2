@@ -14,6 +14,7 @@ use App\Models\Venta;
 beforeEach(function () {
     $this->admin = User::factory()->admin()->create();
     $this->actingAs($this->admin);
+    abrirCaja($this->admin);
 
     $e = ['id_empresa' => $this->admin->id_empresa];
     $this->tipo = TipoProducto::create($e + ['nombre' => 'Suplementos']);
@@ -106,9 +107,12 @@ test('voiding a sale returns stock, removes income and cancels the membership', 
     ]);
 
     $venta = Venta::first();
-    $this->patch("/ventas/{$venta->id_venta}/anular")->assertSessionHas('success');
+    $this->patch("/ventas/{$venta->id_venta}/anular")->assertSessionHasErrors('motivo');
+    $this->patch("/ventas/{$venta->id_venta}/anular", ['motivo' => 'Cliente se arrepintió'])->assertSessionHas('success');
 
     expect($venta->fresh()->estado)->toBe('anulado')
+        ->and($venta->fresh()->motivo_anulacion)->toBe('Cliente se arrepintió')
+        ->and($venta->fresh()->anulada_por)->toBe($this->admin->id)
         ->and($this->producto->fresh()->stockEn($this->admin->id_sucursal))->toBe(10)
         ->and(Ingreso::count())->toBe(0)
         ->and(Membresia::first()->estado)->toBe('anulado')
@@ -117,6 +121,7 @@ test('voiding a sale returns stock, removes income and cancels the membership', 
 
 test('receptionists can sell but not void sales', function () {
     $recepcion = User::factory()->conRol(Role::RECEPCIONISTA)->create(['id_empresa' => $this->admin->id_empresa, 'id_sucursal' => $this->admin->id_sucursal]);
+    abrirCaja($recepcion);
 
     $this->actingAs($recepcion)->post('/ventas', [
         'metodo_pago' => 'efectivo',
@@ -127,7 +132,7 @@ test('receptionists can sell but not void sales', function () {
     $venta = Venta::first();
     expect($venta->id_sucursal)->toBe($recepcion->id_sucursal);
 
-    $this->actingAs($recepcion)->patch("/ventas/{$venta->id_venta}/anular")->assertForbidden();
+    $this->actingAs($recepcion)->patch("/ventas/{$venta->id_venta}/anular", ['motivo' => 'Prueba de permiso'])->assertForbidden();
 });
 
 test('catalog: products, categories and stock adjustments', function () {
@@ -140,7 +145,8 @@ test('catalog: products, categories and stock adjustments', function () {
     $agua = Producto::where('nombre', 'Agua')->firstOrFail();
     expect($agua->stockEn($this->admin->id_sucursal))->toBe(24);
 
-    $this->post("/catalogo/{$agua->id_producto}/stock", ['cantidad' => -4])->assertSessionHas('success');
+    $this->post("/catalogo/{$agua->id_producto}/stock", ['cantidad' => -4])->assertSessionHas('error'); // falta el motivo
+    $this->post("/catalogo/{$agua->id_producto}/stock", ['cantidad' => -4, 'tipo' => 'merma', 'motivo' => 'Botellas rotas'])->assertSessionHas('success');
     expect($agua->fresh()->stockEn($this->admin->id_sucursal))->toBe(20);
 
     $this->post("/catalogo/{$agua->id_producto}/stock", ['cantidad' => -50])->assertSessionHas('error');

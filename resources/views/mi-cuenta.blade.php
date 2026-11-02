@@ -203,6 +203,23 @@
                     </div>
                 </div>
 
+                @if ($planNutricional)
+                    <div class="col-12">
+                        <div class="cuenta-card">
+                            <h5><i class="bi bi-egg-fried"></i> Mi plan nutricional</h5>
+                            <p class="fw-bold mb-0">{{ $planNutricional->objetivo }}</p>
+                            <p class="text-muted small">Por {{ $planNutricional->nutricionista?->name ?? 'tu nutricionista' }} · {{ $planNutricional->created_at->format('d/m/Y') }}</p>
+                            <div class="row text-center g-2 mb-2">
+                                <div class="col-3"><div class="fw-bold fs-5">{{ $planNutricional->calorias ?? '—' }}</div><div class="small text-muted">kcal/día</div></div>
+                                <div class="col-3"><div class="fw-bold fs-5">{{ $planNutricional->proteinas ?? '—' }}</div><div class="small text-muted">proteína g</div></div>
+                                <div class="col-3"><div class="fw-bold fs-5">{{ $planNutricional->carbohidratos ?? '—' }}</div><div class="small text-muted">carbos g</div></div>
+                                <div class="col-3"><div class="fw-bold fs-5">{{ $planNutricional->grasas ?? '—' }}</div><div class="small text-muted">grasas g</div></div>
+                            </div>
+                            @if ($planNutricional->indicaciones)<p class="small mb-0" style="white-space:pre-line;">{{ $planNutricional->indicaciones }}</p>@endif
+                        </div>
+                    </div>
+                @endif
+
                 <div class="col-12">
                     <div class="cuenta-card">
                         <h5><i class="bi bi-calendar-plus"></i> Clases disponibles</h5>

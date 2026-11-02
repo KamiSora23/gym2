@@ -18,6 +18,9 @@ class User extends Authenticatable
         'role_id',
         'id_empresa',
         'id_sucursal',
+        'estado',
+        'motivo_bloqueo',
+        'bloqueado_en',
     ];
 
     protected $hidden = [
@@ -29,6 +32,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'bloqueado_en' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -76,14 +80,32 @@ class User extends Authenticatable
         return $this->hasRole(Role::SUPER_ADMIN);
     }
 
+    /**
+     * Administrador de la empresa (o super admin). Usar permisos para decisiones de acceso.
+     */
     public function isAdmin(): bool
     {
         return $this->hasRole(Role::SUPER_ADMIN, Role::ADMIN);
     }
 
+    /**
+     * Personal del gimnasio: cualquier rol, incluidos los propios de la empresa, salvo cliente.
+     */
     public function isStaff(): bool
     {
-        return $this->hasRole(...Role::STAFF);
+        return $this->role !== null && ! $this->isCliente();
+    }
+
+    public function isBloqueado(): bool
+    {
+        return $this->estado === 'bloqueado';
+    }
+
+    public function permisosIndividuales()
+    {
+        return $this->belongsToMany(Permiso::class, 'user_permiso', 'user_id', 'permiso_id')
+            ->withPivot(['tipo', 'otorgado_por'])
+            ->withTimestamps();
     }
 
     /**
@@ -91,7 +113,7 @@ class User extends Authenticatable
      */
     public function permite(string $accion): bool
     {
-        return Permisos::permite($this, $accion);
+        return Permisos::puede($this, $accion);
     }
 
     public function isCliente(): bool

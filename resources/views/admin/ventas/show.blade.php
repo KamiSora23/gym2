@@ -44,6 +44,9 @@
                 @else
                     <p class="muted" style="margin:0;">Venta de mostrador</p>
                 @endif
+                @if ($venta->estado === 'anulado' && $venta->anulada_en)
+                    <div class="alert alert-error" style="margin:.75rem 0 0;"><i class="fas fa-ban"></i> Anulada por {{ $venta->anuladaPor?->name ?? '—' }} el {{ $venta->anulada_en->format('d/m/Y H:i') }}: {{ $venta->motivo_anulacion }}</div>
+                @endif
                 <div class="summary-row" style="margin-top:.75rem;"><span>Método de pago</span><strong>{{ \App\Models\Venta::METODOS_PAGO[$venta->metodo_pago] ?? $venta->metodo_pago }}</strong></div>
                 @foreach ($venta->membresias as $m)
                     <div class="summary-row"><span>Membresía {{ $m->plan?->nombre }}</span><strong>{{ $m->fecha_inicio->format('d/m/Y') }} → {{ $m->fecha_fin->format('d/m/Y') }}</strong></div>
@@ -58,8 +61,8 @@
                             <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fas fa-check"></i> Marcar como pagada</button>
                         </form>
                     @endif
-                    @if (Auth::user()->permite('ventas.anular'))
-                        <form method="POST" action="{{ route('ventas.anular', $venta) }}" style="flex:1;" data-confirm="¿Anular la venta {{ $venta->folio }}? Se devolverá el stock y se cancelará la membresía.">
+                    @if (Auth::user()->permite('sales.cancel'))
+                        <form method="POST" action="{{ route('ventas.anular', $venta) }}" style="flex:1;" data-motivo="Motivo de la anulación de la venta {{ $venta->folio }} (se devolverá el stock, el dinero saldrá de tu caja y se cancelará la membresía):">
                             @csrf @method('PATCH')
                             <button type="submit" class="btn btn-danger" style="width:100%;"><i class="fas fa-ban"></i> Anular venta</button>
                         </form>

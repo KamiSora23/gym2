@@ -1,10 +1,15 @@
-<x-admin-layout titulo="Usuarios y roles" icono="fa-users-gear" modulo="usuarios"
-    subtitulo="Cuentas del personal de {{ \App\Support\Tenant::empresa()?->nombre }} y sus permisos.">
+<x-admin-layout titulo="Empleados" icono="fa-user-tie" modulo="usuarios"
+    subtitulo="Cuentas del personal de {{ \App\Support\Tenant::empresa()?->nombre }}, su rol, sucursal y estado.">
 
     <x-slot name="acciones">
+        @if (Auth::user()->permite('roles.manage'))
+            <a href="{{ route('roles.index') }}" class="btn btn-light"><i class="fas fa-shield-halved"></i> Roles y permisos</a>
+        @endif
+        @if ($puedeGestionar)
         <button type="button" class="btn btn-primary" data-toggle-target="form-usuario">
             <i class="fas fa-user-plus"></i> Nuevo usuario
         </button>
+        @endif
     </x-slot>
 
     @php
@@ -23,6 +28,7 @@
         @endforeach
     </div>
 
+    @if ($puedeGestionar)
     <form id="form-usuario" method="POST" action="{{ route('usuarios.store') }}" class="form-card {{ $creando ? '' : 'hidden' }}">
         @csrf
         <h3><i class="fas fa-user-plus"></i> Nuevo usuario</h3>
@@ -70,6 +76,7 @@
             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Crear usuario</button>
         </div>
     </form>
+    @endif
 
     <div class="table-card">
         <div class="table-header">
@@ -94,14 +101,16 @@
                     @foreach ($usuarios as $u)
                         @php
                             $editando = $errors->usuario->any() && (int) old('_id') === $u->id;
-                            $editable = $yo->isSuperAdmin() || ! $u->isSuperAdmin();
+                            $editable = $puedeGestionar && ($yo->isSuperAdmin() || ! $u->isSuperAdmin());
                         @endphp
                         <tr>
                             <td>
                                 <div class="user-cell">
                                     <div class="user-avatar">{{ strtoupper(mb_substr($u->name, 0, 1)) }}</div>
                                     <div>
-                                        {{ $u->name }} @if ($u->is($yo)) <span class="status-badge status-info">Tú</span> @endif
+                                        <a href="{{ route('usuarios.show', $u) }}" style="color:var(--text-dark); font-weight:600; text-decoration:none;">{{ $u->name }}</a>
+                                        @if ($u->is($yo)) <span class="status-badge status-info">Tú</span> @endif
+                                        @if ($u->isBloqueado()) <span class="status-badge status-cancelled"><i class="fas fa-lock"></i> Bloqueado</span> @endif
                                         <small>{{ $u->email }}</small>
                                     </div>
                                 </div>
@@ -114,8 +123,9 @@
                             <td>{{ $u->isSuperAdmin() ? 'Plataforma' : ($u->sucursal?->nombre ?? 'Todas') }}</td>
                             <td>{{ $u->created_at?->format('d/m/Y') }}</td>
                             <td>
+                                <div class="row-actions">
+                                    <a href="{{ route('usuarios.show', $u) }}" class="btn btn-light btn-sm btn-icon" title="Ficha y permisos"><i class="fas fa-key"></i></a>
                                 @if ($editable)
-                                    <div class="row-actions">
                                         <button type="button" class="btn btn-light btn-sm btn-icon" title="Editar" data-toggle-target="editar-{{ $u->id }}"><i class="fas fa-pen"></i></button>
                                         @unless ($u->is($yo))
                                             <form method="POST" action="{{ route('usuarios.destroy', $u) }}" data-confirm="¿Eliminar a {{ $u->name }}? Esta acción no se puede deshacer.">
@@ -124,8 +134,8 @@
                                                 <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Eliminar"><i class="fas fa-trash"></i></button>
                                             </form>
                                         @endunless
-                                    </div>
                                 @endif
+                                </div>
                             </td>
                         </tr>
                         @if ($editable)

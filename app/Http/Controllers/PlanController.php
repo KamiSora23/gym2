@@ -33,7 +33,7 @@ class PlanController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        Permisos::exigir('planes.editar');
+        Permisos::exigir('memberships.manage_plans');
 
         Plan::create($this->validar($request) + ['activo' => true]);
 
@@ -42,7 +42,7 @@ class PlanController extends Controller
 
     public function update(Request $request, Plan $plan): RedirectResponse
     {
-        Permisos::exigir('planes.editar');
+        Permisos::exigir('memberships.manage_plans');
 
         $datos = $this->validar($request);
         $datos['activo'] = $request->boolean('activo');
@@ -53,7 +53,7 @@ class PlanController extends Controller
 
     public function destroy(Plan $plan): RedirectResponse
     {
-        Permisos::exigir('planes.editar');
+        Permisos::exigir('memberships.manage_plans');
 
         if ($plan->membresias()->exists()) {
             $plan->update(['activo' => false]);

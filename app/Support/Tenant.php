@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Empresa;
 use App\Models\Sucursal;
+use App\Models\User;
 use Illuminate\Support\Collection;
 
 /**
@@ -40,13 +41,22 @@ class Tenant
             return null;
         }
 
-        if ($user->isAdmin()) {
+        if (static::puedeCambiarSucursal($user)) {
             $id = session('sucursal_id');
 
             return $id ? (int) $id : null;
         }
 
         return $user->id_sucursal;
+    }
+
+    /**
+     * Puede trabajar con todas las sucursales (y elegir una) si tiene el permiso
+     * y no está asignado a una sucursal concreta. El administrador siempre puede.
+     */
+    public static function puedeCambiarSucursal(User $user): bool
+    {
+        return $user->isAdmin() || (! $user->id_sucursal && Permisos::puede($user, 'branches.switch'));
     }
 
     public static function empresa(): ?Empresa
@@ -92,6 +102,17 @@ class Tenant
         }
 
         return $sucursales->first()?->id_sucursal;
+    }
+
+    /**
+     * Si el usuario trabaja en una sucursal concreta, el registro debe ser de esa sucursal.
+     * Evita acceder por URL a ventas o cajas de otra sede.
+     */
+    public static function exigirSucursal(?int $sucursalDelRegistro): void
+    {
+        $actual = static::sucursalId();
+
+        abort_if($actual && $sucursalDelRegistro && $actual !== (int) $sucursalDelRegistro, 403, 'Este registro pertenece a otra sucursal.');
     }
 
     public static function olvidar(): void

@@ -2,14 +2,14 @@
     subtitulo="Planes que se venden en caja y las membresías de tus clientes.">
 
     <x-slot name="acciones">
-        @if (Auth::user()->permite('planes.editar'))
+        @if (Auth::user()->permite('memberships.manage_plans'))
             <button type="button" class="btn btn-primary" data-toggle-target="form-plan"><i class="fas fa-plus"></i> Nuevo plan</button>
         @endif
     </x-slot>
 
     @php $creando = $errors->plan->any() && ! old('_id'); @endphp
 
-    @if (Auth::user()->permite('planes.editar'))
+    @if (Auth::user()->permite('memberships.manage_plans'))
         <form id="form-plan" method="POST" action="{{ route('planes.store') }}" class="form-card {{ $creando ? '' : 'hidden' }}">
             @csrf
             <h3><i class="fas fa-id-card"></i> Nuevo plan</h3>
@@ -45,7 +45,7 @@
                     <div class="campaign-metric"><div class="campaign-metric-value">{{ $plan->duracion_dias }}</div><div class="campaign-metric-label">Días</div></div>
                     <div class="campaign-metric"><div class="campaign-metric-value">{{ $plan->activas_count }}</div><div class="campaign-metric-label">Vigentes</div></div>
                 </div>
-                @if (Auth::user()->permite('planes.editar'))
+                @if (Auth::user()->permite('memberships.manage_plans'))
                     <div class="company-actions" style="margin-top:1rem;">
                         <button type="button" class="btn btn-light btn-sm" data-toggle-target="editar-plan-{{ $plan->id_plan }}"><i class="fas fa-pen"></i> Editar</button>
                         <form method="POST" action="{{ route('planes.destroy', $plan) }}" data-confirm="¿Eliminar el plan {{ $plan->nombre }}?">

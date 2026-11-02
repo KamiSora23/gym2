@@ -2,16 +2,16 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
+use App\Support\CatalogoPermisos;
 use Illuminate\Database\Seeder;
 
 class RolesSeeder extends Seeder
 {
+    /**
+     * Catálogo de permisos y roles plantilla. Idempotente: se puede ejecutar varias veces.
+     */
     public function run(): void
     {
-        // Idempotente: se puede ejecutar varias veces sin duplicar roles.
-        foreach (array_keys(Role::ETIQUETAS) as $nombre) {
-            Role::firstOrCreate(['nombre' => $nombre]);
-        }
+        CatalogoPermisos::sincronizar();
     }
 }

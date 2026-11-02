@@ -3,9 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asistencia;
+use App\Models\Auditoria;
 use App\Models\Cliente;
 use App\Models\Entrenador;
+use App\Models\Membresia;
 use App\Models\Role;
+use App\Models\User;
+use App\Support\Alcance;
 use App\Support\Permisos;
 use App\Support\Tenant;
 use Illuminate\Http\RedirectResponse;
@@ -18,16 +22,12 @@ class ClienteController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        $esCoach = $user->hasRole(Role::ENTRENADOR);
-        $perfil = $esCoach ? $user->entrenador : null;
+        $soloAsignados = ! Alcance::veTodosLosClientes($user);
 
-        $clientes = Cliente::with(['membresiaActiva.plan', 'entrenador'])
+        // Con "clients.view_assigned" solo aparecen sus alumnos o pacientes asignados.
+        $clientes = Alcance::clientes($user, Cliente::query())
+            ->with(['membresiaActiva.plan', 'entrenador', 'nutricionista'])
             ->withCount('clases')
-            // El coach solo ve a sus alumnos: los que entrena en persona o los inscritos en sus clases.
-            ->when($esCoach, fn ($q) => $q->where(function ($w) use ($perfil) {
-                $id = $perfil?->id_entrenador ?? 0;
-                $w->where('id_entrenador', $id)->orWhereHas('clases', fn ($c) => $c->where('clases.id_entrenador', $id));
-            }))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $texto = '%'.$request->q.'%';
                 $q->where(fn ($w) => $w->where('nombre', 'like', $texto)->orWhere('dni', 'like', $texto)->orWhere('correo', 'like', $texto));
@@ -38,11 +38,13 @@ class ClienteController extends Controller
 
         return view('admin.clientes', [
             'clientes' => $clientes,
-            'puedeEditar' => $user->permite('clientes.crear'),
-            'puedeEliminar' => $user->permite('clientes.eliminar'),
-            'puedeAsignarCoach' => $user->permite('clientes.asignar_coach'),
-            'esCoach' => $esCoach,
+            'puedeCrear' => $user->permite('clients.create'),
+            'puedeEditar' => $user->permite('clients.edit'),
+            'puedeEliminar' => $user->permite('clients.delete'),
+            'puedeAsignarCoach' => $user->permite('clients.assign'),
+            'esCoach' => $soloAsignados,
             'entrenadores' => Entrenador::where('activo', true)->orderBy('nombre')->get(),
+            'nutricionistas' => $this->nutricionistas(),
             'resumen' => [
                 'total' => Cliente::count(),
                 'activos' => Cliente::whereHas('membresiaActiva')->count(),
@@ -58,34 +60,41 @@ class ClienteController extends Controller
     public function show(Request $request, Cliente $cliente): View
     {
         $user = $request->user();
+        Alcance::exigirCliente($user, $cliente);
 
-        if ($user->hasRole(Role::ENTRENADOR)) {
-            abort_unless($user->entrenador && $user->entrenador->esAlumno($cliente), 403, 'Solo puedes ver a tus alumnos.');
-        }
+        $cliente->load(['entrenador', 'nutricionista', 'membresiaActiva.plan', 'clases.entrenador', 'rutinas.ejercicios', 'rutinas.entrenador', 'progresos']);
 
-        $cliente->load(['entrenador', 'membresiaActiva.plan', 'clases.entrenador', 'rutinas.ejercicios', 'rutinas.entrenador', 'progresos']);
+        // Los datos nutricionales son sensibles: solo los ve quien tiene "nutrition.view".
+        $veNutricion = $user->permite('nutrition.view');
 
         return view('admin.cliente-ficha', [
             'cliente' => $cliente,
             'membresias' => $cliente->membresias()->with('plan')->orderByDesc('fecha_fin')->limit(6)->get(),
             'asistencias' => Asistencia::where('id_cliente', $cliente->id_cliente)->orderByDesc('fecha')->limit(10)->get(),
-            'puedeRutinas' => $user->permite('rutinas.gestionar'),
-            'puedeEditar' => $user->permite('clientes.crear'),
+            'puedeRutinas' => $user->permite('routines.manage'),
+            'puedeEvaluar' => $user->permite('evaluations.manage'),
+            'puedeEditar' => $user->permite('clients.edit'),
+            'puedeCongelar' => $user->permite('memberships.freeze'),
+            'veNutricion' => $veNutricion,
+            'puedeNutricion' => $user->permite('nutrition.manage'),
+            'planesNutricionales' => $veNutricion ? $cliente->planesNutricionales()->with('nutricionista')->get() : collect(),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $this->noCoach($request);
+        Permisos::exigir('clients.create');
 
-        Cliente::create($this->validar($request));
+        $cliente = Cliente::create($this->validar($request));
+        Auditoria::registrar('cliente.creado', "Registró al cliente {$cliente->nombre}", $cliente);
 
         return redirect()->route('clientes.index')->with('success', 'Cliente registrado correctamente.');
     }
 
     public function update(Request $request, Cliente $cliente): RedirectResponse
     {
-        $this->noCoach($request);
+        Permisos::exigir('clients.edit');
+        Alcance::exigirCliente($request->user(), $cliente);
 
         $cliente->update($this->validar($request, $cliente));
 
@@ -94,20 +103,73 @@ class ClienteController extends Controller
 
     public function destroy(Request $request, Cliente $cliente): RedirectResponse
     {
-        Permisos::exigir('clientes.eliminar');
+        Permisos::exigir('clients.delete');
 
         if ($cliente->ventas()->exists()) {
             return back()->with('error', 'El cliente tiene ventas registradas y no se puede eliminar.');
         }
 
         $cliente->delete();
+        Auditoria::registrar('cliente.eliminado', "Eliminó al cliente {$cliente->nombre}", $cliente);
 
         return back()->with('success', 'Cliente eliminado.');
     }
 
+    /**
+     * Congela la membresía vigente: deja de contar el tiempo hasta que se reanude.
+     */
+    public function congelar(Request $request, Membresia $membresia): RedirectResponse
+    {
+        Permisos::exigir('memberships.freeze');
+        $cliente = Cliente::findOrFail($membresia->id_cliente);
+
+        if ($membresia->estado !== 'activo' || $membresia->fecha_fin->lt(today())) {
+            return back()->with('error', 'Solo se puede congelar una membresía vigente.');
+        }
+
+        $membresia->update(['estado' => 'congelada', 'congelada_desde' => today()]);
+        Auditoria::registrar('membresia.congelada', "Congeló la membresía de {$cliente->nombre}", $cliente);
+
+        return back()->with('success', 'Membresía congelada. Los días no se descuentan hasta que se reanude.');
+    }
+
+    /**
+     * Reanuda la membresía y alarga su vencimiento los días que estuvo congelada.
+     */
+    public function reanudar(Request $request, Membresia $membresia): RedirectResponse
+    {
+        Permisos::exigir('memberships.freeze');
+        $cliente = Cliente::findOrFail($membresia->id_cliente);
+
+        if ($membresia->estado !== 'congelada') {
+            return back()->with('error', 'La membresía no está congelada.');
+        }
+
+        $dias = (int) $membresia->congelada_desde->diffInDays(today());
+
+        $membresia->update([
+            'estado' => 'activo',
+            'fecha_fin' => $membresia->fecha_fin->copy()->addDays($dias),
+            'dias_congelados' => $membresia->dias_congelados + $dias,
+            'congelada_desde' => null,
+        ]);
+
+        Auditoria::registrar('membresia.reanudada', "Reanudó la membresía de {$cliente->nombre} (+{$dias} días)", $cliente);
+
+        return back()->with('success', "Membresía reanudada. Se sumaron {$dias} días a su vencimiento.");
+    }
+
+    private function nutricionistas()
+    {
+        return User::where('id_empresa', Tenant::empresaId())
+            ->whereHas('role', fn ($q) => $q->where('nombre', Role::NUTRICIONISTA))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
     private function noCoach(Request $request): void
     {
-        Permisos::exigir('clientes.crear');
+        Permisos::exigir('clients.edit');
     }
 
     private function validar(Request $request, ?Cliente $cliente = null): array
@@ -123,11 +185,12 @@ class ClienteController extends Controller
             'telefono' => ['nullable', 'string', 'max:30'],
             'correo' => ['nullable', 'email', 'max:150'],
             'id_entrenador' => ['nullable', Rule::exists('entrenadores', 'id_entrenador')->where('id_empresa', Tenant::empresaId())],
+            'id_nutricionista' => ['nullable', Rule::in($this->nutricionistas()->pluck('id'))],
         ]);
 
-        // Solo admin y recepción asignan el coach personal.
-        if (! $request->user()->permite('clientes.asignar_coach')) {
-            unset($datos['id_entrenador']);
+        // Asignar coach o nutricionista es un permiso aparte.
+        if (! $request->user()->permite('clients.assign')) {
+            unset($datos['id_entrenador'], $datos['id_nutricionista']);
         }
 
         return $datos;
