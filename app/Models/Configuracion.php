@@ -27,8 +27,14 @@ class Configuracion extends Model
         'nombre_gym' => 'GYM IMPULSO',
         'color_primario' => '#ff4d4f',
         'color_sidebar' => '#111827',
-        'color_secundario' => '#ffffff',
+        'color_secundario' => '#f59e0b',
+        'color_fondo' => '#f5f7fb',
+        'web_color_primario' => '#ffc107',
+        'web_color_oscuro' => '#0f172a',
+        'web_usa_colores_panel' => false,
     ];
+
+    public const NOMBRE_PLATAFORMA = 'GYM Cloud';
 
     protected $fillable = [
         'id_empresa',
@@ -39,6 +45,11 @@ class Configuracion extends Model
         'color_primario',
         'color_sidebar',
         'color_secundario',
+        'color_fondo',
+        'tema',
+        'web_color_primario',
+        'web_color_oscuro',
+        'web_usa_colores_panel',
         'telefono',
         'email',
         'direccion',
@@ -54,6 +65,11 @@ class Configuracion extends Model
         'horario_sabado',
         'horario_domingo',
     ];
+
+    protected function casts(): array
+    {
+        return ['web_usa_colores_panel' => 'boolean'];
+    }
 
     protected static function booted(): void
     {
@@ -73,7 +89,8 @@ class Configuracion extends Model
         }
 
         $cache = app('gym.configuraciones');
-        $clave = 'empresa:'.(Tenant::empresaId() ?? 'publica');
+        $enPlataforma = auth()->user()?->isSuperAdmin() && ! Tenant::empresaId();
+        $clave = $enPlataforma ? 'plataforma' : 'empresa:'.(Tenant::empresaId() ?? 'publica');
 
         if (isset($cache[$clave])) {
             return $cache[$clave];
@@ -84,7 +101,9 @@ class Configuracion extends Model
                 return new static(self::VALORES_POR_DEFECTO);
             }
 
-            return $cache[$clave] = static::paraEmpresa(Tenant::empresaId() ?? Empresa::principal()?->id_empresa);
+            return $cache[$clave] = $enPlataforma
+                ? static::plataforma()
+                : static::paraEmpresa(Tenant::empresaId() ?? Empresa::principal()?->id_empresa);
         } catch (Throwable) {
             return new static(self::VALORES_POR_DEFECTO);
         }
@@ -92,8 +111,7 @@ class Configuracion extends Model
 
     public static function paraEmpresa(?int $empresaId): self
     {
-        $config = static::query()->when($empresaId, fn ($q) => $q->where('id_empresa', $empresaId))->first()
-            ?? static::query()->whereNull('id_empresa')->first();
+        $config = $empresaId ? static::query()->where('id_empresa', $empresaId)->first() : null;
 
         if ($config) {
             return $config;
@@ -101,7 +119,16 @@ class Configuracion extends Model
 
         $nombre = $empresaId ? Empresa::find($empresaId)?->nombre : null;
 
-        return new static(['nombre_gym' => $nombre ?: self::VALORES_POR_DEFECTO['nombre_gym']] + self::VALORES_POR_DEFECTO);
+        return new static(['id_empresa' => $empresaId, 'nombre_gym' => $nombre ?: self::VALORES_POR_DEFECTO['nombre_gym']] + self::VALORES_POR_DEFECTO);
+    }
+
+    /**
+     * Configuración del panel de plataforma (super admin). No pertenece a ninguna empresa.
+     */
+    public static function plataforma(): self
+    {
+        return static::query()->whereNull('id_empresa')->first()
+            ?? new static(['nombre_gym' => self::NOMBRE_PLATAFORMA, 'color_primario' => '#6366f1', 'color_sidebar' => '#0b1020', 'color_secundario' => '#22d3ee'] + self::VALORES_POR_DEFECTO);
     }
 
     public function getLogoUrlAttribute(): string

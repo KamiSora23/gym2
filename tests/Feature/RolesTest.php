@@ -83,19 +83,27 @@ test('an admin manages the users of their company but cannot create super admins
 
 test('the last super admin cannot be demoted or deleted', function () {
     $super = User::factory()->superAdmin()->create();
+    $otro = User::factory()->superAdmin()->create();
     $empresa = UserFactory::empresaDePrueba();
 
-    $this->actingAs($super)->withSession(['empresa_id' => $empresa->id_empresa]);
+    $this->actingAs($super);
 
-    $this->put("/usuarios/{$super->id}", [
+    // Desde una empresa no se puede tocar a un super admin: se gestionan en la plataforma.
+    $this->withSession(['empresa_id' => $empresa->id_empresa])
+        ->delete("/usuarios/{$otro->id}")->assertForbidden();
+
+    $this->delete("/plataforma/usuarios/{$otro->id}")->assertSessionHas('success');
+
+    $this->put("/plataforma/usuarios/{$super->id}", [
         'name' => $super->name,
         'email' => $super->email,
         'role_id' => Role::idDe(Role::ADMIN),
+        'id_empresa' => $empresa->id_empresa,
     ])->assertSessionHas('error');
 
     expect($super->fresh()->isSuperAdmin())->toBeTrue();
 
-    $this->delete("/usuarios/{$super->id}")->assertSessionHas('error');
+    $this->delete("/plataforma/usuarios/{$super->id}")->assertSessionHas('error');
     expect($super->fresh())->not->toBeNull();
 });
 

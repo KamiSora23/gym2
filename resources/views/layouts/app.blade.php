@@ -20,11 +20,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        :root {
-            --primary-color: {{ $config->color_primario ?: '#ff4d4f' }};
-            --sidebar-color: {{ $config->color_sidebar ?: '#111827' }};
-            --secondary-color: {{ $config->color_secundario ?: '#ffffff' }};
-        }
+        :root { {!! \App\Support\Tema::panel($config) !!} }
 
         body {
             font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;

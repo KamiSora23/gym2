@@ -11,10 +11,14 @@ use App\Http\Controllers\ContextoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EntrenadorController;
 use App\Http\Controllers\GastoController;
+use App\Http\Controllers\MiCuentaController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\Plataforma\PlataformaController;
+use App\Http\Controllers\Plataforma\UsuarioGlobalController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VentaController;
+use App\Http\Middleware\EnModoPlataforma;
 use App\Models\Role;
 use App\Support\Permisos;
 use Illuminate\Support\Facades\Route;
@@ -37,9 +41,24 @@ Route::middleware('auth')->group(function () {
 
     // ---------- Plataforma (solo super admin) ----------
     Route::middleware('role:'.Role::SUPER_ADMIN)->group(function () {
-        Route::resource('empresas', EmpresaController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::post('/contexto/empresa', [ContextoController::class, 'empresa'])->name('contexto.empresa');
+
+        // Al entrar a estas páginas se sale de la empresa que se estaba administrando.
+        Route::middleware(EnModoPlataforma::class)->group(function () {
+            Route::get('/plataforma', [PlataformaController::class, 'index'])->name('plataforma.index');
+            Route::get('/plataforma/roles', [PlataformaController::class, 'roles'])->name('plataforma.roles');
+            Route::get('/plataforma/configuracion', [PlataformaController::class, 'configuracion'])->name('plataforma.configuracion');
+            Route::post('/plataforma/configuracion', [PlataformaController::class, 'guardarConfiguracion'])->name('plataforma.configuracion.store');
+            Route::resource('plataforma/usuarios', UsuarioGlobalController::class)
+                ->only(['index', 'store', 'update', 'destroy'])
+                ->names('plataforma.usuarios')
+                ->parameters(['usuarios' => 'usuario']);
+            Route::resource('empresas', EmpresaController::class)->only(['index', 'store', 'update', 'destroy']);
+        });
     });
+
+    // ---------- Área del cliente ----------
+    Route::get('/mi-cuenta', MiCuentaController::class)->middleware('role:'.Role::CLIENTE)->name('mi-cuenta');
 
     // ---------- Panel de la empresa (todo el personal) ----------
     Route::middleware(['role:'.implode(',', Role::STAFF), 'empresa'])->group(function () {

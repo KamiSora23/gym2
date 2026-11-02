@@ -37,7 +37,7 @@
                 </a>
 
                 @if ($usuario->isStaff() && ! $enPanel)
-                    <a href="{{ route('dashboard') }}"
+                    <a href="{{ $usuario->homeRoute() }}"
                         class="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 px-3 py-2 rounded-xl hover:bg-slate-100 transition">
                         <i class="fas fa-gauge text-xs"></i> Panel
                     </a>

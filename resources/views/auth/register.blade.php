@@ -13,9 +13,10 @@
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
+    @include('partials.tema-web')
     <style>
         body {
-            background: linear-gradient(135deg, #0f172a, #1e293b);
+            background: linear-gradient(135deg, var(--dark), var(--dark-light));
             min-height: 90vh;
             display: flex;
             align-items: center;
@@ -37,7 +38,7 @@
         }
 
         .gym-logo span {
-            color: #ffc107;
+            color: var(--primary);
         }
 
         .form-control {
@@ -48,11 +49,12 @@
 
         .form-control:focus {
             box-shadow: none;
-            border-color: #ffc107;
+            border-color: var(--primary);
         }
 
         .btn-register {
-            background: #ffc107;
+            background: var(--primary);
+            color: var(--primary-text);
             border: none;
             border-radius: 12px;
             padding: 12px;
@@ -61,21 +63,22 @@
         }
 
         .btn-register:hover {
-            background: #ffc107;
+            background: var(--primary-hover);
+            color: var(--primary-text);
         }
 
         .text-link {
-            color: #ffc107;
+            color: var(--primary);
             text-decoration: none;
             font-weight: 600;
         }
 
         .text-link:hover {
-            color: #ffc107;
+            color: var(--primary);
         }
 
         .input-error {
-            color: #ffc107;
+            color: var(--primary);
             font-size: 0.85rem;
             margin-top: 5px;
         }

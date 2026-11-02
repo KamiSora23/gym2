@@ -4,6 +4,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ asset('css/estilos.css') }}">
+    @include('partials.tema-web')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $config->nombre_gym }} - Checkout</title>
@@ -43,9 +44,17 @@
                         </button>
                     
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                @if (Auth::user()->isCliente())
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('mi-cuenta') }}">
+                                            <i class="bi bi-person-badge me-2"></i>
+                                            Mi cuenta
+                                        </a>
+                                    </li>
+                                @endif
                                 @if (Auth::user()->isStaff())
                                     <li>
-                                        <a class="dropdown-item" href="{{ route('dashboard') }}">
+                                        <a class="dropdown-item" href="{{ Auth::user()->homeRoute() }}">
                                             <i class="bi bi-speedometer2 me-2"></i>
                                             Panel administrativo
                                         </a>

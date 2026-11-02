@@ -13,7 +13,7 @@ class Sucursal extends Model
 
     protected $primaryKey = 'id_sucursal';
 
-    protected $fillable = ['id_empresa', 'nombre', 'direccion', 'telefono', 'activo'];
+    protected $fillable = ['id_empresa', 'nombre', 'direccion', 'telefono', 'activo', 'color_primario', 'color_sidebar'];
 
     protected function casts(): array
     {

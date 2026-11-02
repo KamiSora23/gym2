@@ -19,7 +19,7 @@ class ContextoController extends Controller
         Tenant::olvidar();
 
         if (empty($datos['id_empresa'])) {
-            return redirect()->route('empresas.index');
+            return redirect()->route('plataforma.index');
         }
 
         session(['empresa_id' => (int) $datos['id_empresa']]);

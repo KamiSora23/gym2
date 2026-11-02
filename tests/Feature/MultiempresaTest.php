@@ -46,7 +46,7 @@ test('super admin must pick a company before using the modules', function () {
     $super = User::factory()->superAdmin()->create();
     [$empresa] = empresaConSucursal('Alfa');
 
-    $this->actingAs($super)->get('/dashboard')->assertRedirect(route('empresas.index'));
+    $this->actingAs($super)->get('/dashboard')->assertRedirect(route('plataforma.index'));
 
     $this->actingAs($super)->post('/contexto/empresa', ['id_empresa' => $empresa->id_empresa])
         ->assertRedirect(route('dashboard'));

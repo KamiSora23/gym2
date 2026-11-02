@@ -29,7 +29,7 @@ test('clients are redirected to the home page after login', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect('/');
+    $response->assertRedirect(route('mi-cuenta'));
 });
 
 test('users can not authenticate with invalid password', function () {

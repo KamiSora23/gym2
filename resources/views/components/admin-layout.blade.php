@@ -11,16 +11,28 @@
     $sucursales = \App\Support\Tenant::sucursales();
     $sucursalActual = \App\Support\Tenant::sucursalId();
     $puede = fn (string $m) => \App\Support\Permisos::puede($usuario, $m);
+    $modoPlataforma = $usuario->isSuperAdmin() && ! $empresaActual;
+    $esCoach = $usuario->hasRole(\App\Models\Role::ENTRENADOR);
+
+    $menuPlataforma = [
+        'Plataforma' => [
+            ['plataforma', 'plataforma.index', 'fa-gauge-high', 'Panel de plataforma'],
+            ['empresas', 'empresas.index', 'fa-building', 'Empresas'],
+            ['usuarios-globales', 'plataforma.usuarios.index', 'fa-users-gear', 'Usuarios globales'],
+            ['roles', 'plataforma.roles', 'fa-shield-halved', 'Roles y permisos'],
+            ['plataforma-config', 'plataforma.configuracion', 'fa-sliders', 'Configuración'],
+        ],
+    ];
 
     $menu = [
         'Operaciones' => [
-            ['resumen', 'dashboard', 'fa-chart-line', 'Resumen'],
+            ['resumen', 'dashboard', 'fa-chart-line', $esCoach ? 'Mi panel' : 'Resumen'],
             ['ventas', 'ventas.index', 'fa-cart-shopping', 'Ventas'],
             ['asistencias', 'asistencias.index', 'fa-calendar-check', 'Asistencias'],
             ['gastos', 'gastos.index', 'fa-file-invoice-dollar', 'Gastos'],
         ],
         'Gestión' => [
-            ['clientes', 'clientes.index', 'fa-users', 'Clientes'],
+            ['clientes', 'clientes.index', 'fa-users', $esCoach ? 'Mis alumnos' : 'Clientes'],
             ['planes', 'planes.index', 'fa-id-card', 'Planes y membresías'],
             ['catalogo', 'productos.index', 'fa-box-open', 'Catálogo'],
             ['entrenamiento', 'entrenamiento.index', 'fa-dumbbell', 'Entrenamiento'],
@@ -52,13 +64,9 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        :root {
-            --primary-color: {{ $config->color_primario ?: '#ff4d4f' }};
-            --sidebar-color: {{ $config->color_sidebar ?: '#111827' }};
-            --secondary-color: {{ $config->color_secundario ?: '#ffffff' }};
-        }
+        :root { {!! \App\Support\Tema::panel($config, \App\Support\Tenant::sucursal()) !!} }
 
-        body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; background: #f5f7fb; color: #1e293b; margin: 0; }
+        body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; background: var(--bg-color); color: #1e293b; margin: 0; }
     </style>
 
     @include('admin.styles')
@@ -71,11 +79,11 @@
                 <i class="fas fa-bars"></i>
             </button>
 
-            <a href="{{ route('dashboard') }}" class="topbar-brand">
+            <a href="{{ $usuario->homeRoute() }}" class="topbar-brand">
                 <img src="{{ $config->logo_url }}" alt="Logo">
                 <span style="min-width:0;">
-                    <strong>{{ $empresaActual?->nombre ?? $config->nombre_gym }}</strong>
-                    <small>{{ $usuario->isSuperAdmin() ? 'Panel de plataforma' : 'Sistema administrativo' }}</small>
+                    <strong>{{ $modoPlataforma ? $config->nombre_gym : ($empresaActual?->nombre ?? $config->nombre_gym) }}</strong>
+                    <small>{{ $modoPlataforma ? 'Plataforma · Super administración' : ($usuario->sucursal?->nombre ?? 'Sistema administrativo') }}</small>
                 </span>
             </a>
         </div>
@@ -86,7 +94,7 @@
                     @csrf
                     <span><i class="fas fa-building"></i></span>
                     <select name="id_empresa" onchange="this.form.submit()">
-                        <option value="">— Plataforma —</option>
+                        <option value="">Plataforma (todas)</option>
                         @foreach (\App\Models\Empresa::orderBy('nombre')->get(['id_empresa', 'nombre']) as $e)
                             <option value="{{ $e->id_empresa }}" @selected($empresaActual?->id_empresa === $e->id_empresa)>{{ $e->nombre }}</option>
                         @endforeach
@@ -141,21 +149,33 @@
             </div>
 
             <nav class="sidebar-menu">
-                @if ($usuario->isSuperAdmin())
-                    <div class="menu-category">Plataforma</div>
-                    <a href="{{ route('empresas.index') }}" class="menu-item {{ $modulo === 'empresas' ? 'active' : '' }}">
-                        <i class="fas fa-building"></i> Empresas
-                    </a>
-                @endif
+                @if ($modoPlataforma)
+                    @foreach ($menuPlataforma as $categoria => $items)
+                        <div class="menu-category">{{ $categoria }}</div>
+                        @foreach ($items as [$clave, $ruta, $iconoItem, $texto])
+                            <a href="{{ route($ruta) }}" class="menu-item {{ $modulo === $clave ? 'active' : '' }}">
+                                <i class="fas {{ $iconoItem }}"></i> {{ $texto }}
+                            </a>
+                        @endforeach
+                    @endforeach
+                @elseif ($empresaActual)
+                    @if ($usuario->isSuperAdmin())
+                        <form method="POST" action="{{ route('contexto.empresa') }}">
+                            @csrf
+                            <input type="hidden" name="id_empresa" value="">
+                            <button type="submit" class="menu-item menu-back">
+                                <i class="fas fa-arrow-left"></i> Volver a la plataforma
+                            </button>
+                        </form>
+                    @endif
 
-                @if ($empresaActual)
                     @foreach ($menu as $categoria => $items)
                         @php $visibles = array_filter($items, fn ($i) => $puede($i[0])); @endphp
                         @if ($visibles)
                             <div class="menu-category">{{ $categoria }}</div>
-                            @foreach ($visibles as [$clave, $ruta, $icono, $texto])
+                            @foreach ($visibles as [$clave, $ruta, $iconoItem, $texto])
                                 <a href="{{ route($ruta) }}" class="menu-item {{ $modulo === $clave ? 'active' : '' }}">
-                                    <i class="fas {{ $icono }}"></i> {{ $texto }}
+                                    <i class="fas {{ $iconoItem }}"></i> {{ $texto }}
                                 </a>
                             @endforeach
                         @endif
@@ -176,10 +196,22 @@
         <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
         <main class="main-content">
-            @foreach (['success' => 'fa-circle-check', 'error' => 'fa-circle-exclamation', 'info' => 'fa-circle-info'] as $tipo => $icono)
+            @if ($usuario->isSuperAdmin() && $empresaActual)
+                <div class="mode-banner">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Modo empresa: estás administrando <strong>{{ $empresaActual->nombre }}</strong> como super administrador. Todo lo que hagas aquí afecta solo a esta empresa.</span>
+                    <form method="POST" action="{{ route('contexto.empresa') }}">
+                        @csrf
+                        <input type="hidden" name="id_empresa" value="">
+                        <button type="submit" class="btn btn-light btn-sm"><i class="fas fa-arrow-left"></i> Volver a la plataforma</button>
+                    </form>
+                </div>
+            @endif
+
+            @foreach (['success' => 'fa-circle-check', 'error' => 'fa-circle-exclamation', 'info' => 'fa-circle-info'] as $tipo => $iconoAlerta)
                 @if (session($tipo))
                     <div class="alert alert-{{ $tipo }} flash">
-                        <i class="fas {{ $icono }}"></i> {{ session($tipo) }}
+                        <i class="fas {{ $iconoAlerta }}"></i> {{ session($tipo) }}
                         <button type="button" class="alert-close" onclick="this.parentElement.remove()" aria-label="Cerrar"><i class="fas fa-xmark"></i></button>
                     </div>
                 @endif

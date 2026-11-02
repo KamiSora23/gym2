@@ -1,11 +1,13 @@
-<x-admin-layout titulo="Clientes" icono="fa-users" modulo="clientes"
-    subtitulo="Socios del gimnasio, su membresía y su coach personal.">
+<x-admin-layout :titulo="$esCoach ? 'Mis alumnos' : 'Clientes'" icono="fa-users" modulo="clientes"
+    :subtitulo="$esCoach ? 'Clientes que entrenas en persona o que están inscritos en tus clases.' : 'Socios del gimnasio, su membresía y su coach personal.'">
 
-    <x-slot name="acciones">
-        <button type="button" class="btn btn-primary" data-toggle-target="form-cliente">
-            <i class="fas fa-user-plus"></i> Nuevo cliente
-        </button>
-    </x-slot>
+    @if ($puedeEditar)
+        <x-slot name="acciones">
+            <button type="button" class="btn btn-primary" data-toggle-target="form-cliente">
+                <i class="fas fa-user-plus"></i> Nuevo cliente
+            </button>
+        </x-slot>
+    @endif
 
     @php $creando = $errors->cliente->any() && ! old('_id'); @endphp
 
@@ -16,6 +18,7 @@
         <div class="stat-card orange"><div class="stat-title">Con coach personal</div><div class="stat-value">{{ $resumen['con_coach'] }}</div><div class="stat-icon"><i class="fas fa-dumbbell"></i></div></div>
     </div>
 
+    @if ($puedeEditar)
     <form id="form-cliente" method="POST" action="{{ route('clientes.store') }}" class="form-card {{ $creando ? '' : 'hidden' }}">
         @csrf
         <h3><i class="fas fa-user-plus"></i> Nuevo cliente</h3>
@@ -42,6 +45,7 @@
             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Registrar cliente</button>
         </div>
     </form>
+    @endif
 
     <div class="table-card">
         <div class="table-header">
@@ -92,15 +96,20 @@
                                     @if (\App\Support\Permisos::puede(Auth::user(), 'ventas'))
                                         <a href="{{ route('ventas.create', ['cliente' => $cliente->id_cliente]) }}" class="btn btn-light btn-sm btn-icon" title="Vender membresía"><i class="fas fa-cash-register"></i></a>
                                     @endif
-                                    <button type="button" class="btn btn-light btn-sm btn-icon" title="Editar" data-toggle-target="editar-{{ $cliente->id_cliente }}"><i class="fas fa-pen"></i></button>
-                                    <form method="POST" action="{{ route('clientes.destroy', $cliente) }}" data-confirm="¿Eliminar a {{ $cliente->nombre }}?">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Eliminar"><i class="fas fa-trash"></i></button>
-                                    </form>
+                                    @if ($puedeEditar)
+                                        <button type="button" class="btn btn-light btn-sm btn-icon" title="Editar" data-toggle-target="editar-{{ $cliente->id_cliente }}"><i class="fas fa-pen"></i></button>
+                                    @endif
+                                    @if ($puedeEliminar)
+                                        <form method="POST" action="{{ route('clientes.destroy', $cliente) }}" data-confirm="¿Eliminar a {{ $cliente->nombre }}?">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
+                        @if ($puedeEditar)
                         <tr id="editar-{{ $cliente->id_cliente }}" class="edit-row {{ $editando ? '' : 'hidden' }}">
                             <td colspan="6">
                                 <form method="POST" action="{{ route('clientes.update', [$cliente] + request()->only('q', 'page')) }}">
@@ -132,6 +141,7 @@
                                 </form>
                             </td>
                         </tr>
+                        @endif
                     @empty
                         <tr><td colspan="6" class="empty-state"><i class="fas fa-users"></i>{{ request('q') ? 'Ningún cliente coincide con la búsqueda.' : 'Aún no hay clientes registrados.' }}</td></tr>
                     @endforelse

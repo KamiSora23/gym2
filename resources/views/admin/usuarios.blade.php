@@ -61,7 +61,7 @@
                 </select>
             </div>
         </div>
-        <p class="muted" style="margin:.75rem 0 0;">El personal que no es administrador trabaja solo en su sucursal. Los super administradores no pertenecen a ninguna empresa.</p>
+        <p class="muted" style="margin:.75rem 0 0;">El personal que no es administrador trabaja solo en su sucursal.@if ($yo->isSuperAdmin()) Los super administradores se gestionan en <a href="{{ route('plataforma.usuarios.index') }}">Usuarios globales</a>.@endif</p>
         @if ($creando)
             @include('admin.partials.errores', ['bag' => 'usuario'])
         @endif

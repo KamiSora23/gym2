@@ -23,7 +23,8 @@ class SucursalController extends Controller
             ->where('estado', '!=', 'anulado')
             ->where('fecha', '>=', today()->startOfMonth()->toDateString())
             ->groupBy('id_sucursal')
-            ->pluck(DB::raw('sum(total)'), 'id_sucursal');
+            ->selectRaw('id_sucursal, sum(total) as total')
+            ->pluck('total', 'id_sucursal');
 
         return view('admin.sucursales', compact('sucursales', 'ventas'));
     }

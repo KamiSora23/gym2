@@ -22,7 +22,7 @@ class EnsureEmpresaSeleccionada
             if (! $empresa) {
                 Tenant::olvidar();
 
-                return redirect()->route('empresas.index')
+                return redirect()->route('plataforma.index')
                     ->with('info', 'Selecciona una empresa para administrarla.');
             }
 

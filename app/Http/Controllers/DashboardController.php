@@ -8,17 +8,111 @@ use App\Models\Cliente;
 use App\Models\Gasto;
 use App\Models\Ingreso;
 use App\Models\Membresia;
+use App\Models\Producto;
+use App\Models\Role;
 use App\Models\Venta;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
- * Resumen de la empresa (y sucursal) seleccionada.
+ * Panel de inicio. Cada rol ve lo que necesita para su trabajo:
+ * admin (resumen completo), recepción, caja y entrenador.
  */
 class DashboardController extends Controller
 {
-    public function __invoke(): View
+    public function __invoke(Request $request): View
+    {
+        $user = $request->user();
+
+        return match (true) {
+            $user->isAdmin() => $this->administracion(),
+            $user->hasRole(Role::RECEPCIONISTA) => $this->recepcion(),
+            $user->hasRole(Role::CAJERA) => $this->caja(),
+            $user->hasRole(Role::ENTRENADOR) => $this->coach($user),
+        };
+    }
+
+    /**
+     * Recepción: check-in rápido, quién está en el gym, clases de hoy y membresías por vencer.
+     */
+    private function recepcion(): View
+    {
+        $hoy = today();
+
+        $asistenciasHoy = Asistencia::deSucursal()->with('cliente.membresiaActiva')->whereDate('fecha', $hoy)->orderByDesc('hora_entrada')->get();
+
+        return view('admin.paneles.recepcion', [
+            'asistenciasHoy' => $asistenciasHoy,
+            'clasesHoy' => Clase::deSucursal()->with('entrenador')->withCount('clientes')->where('dia_semana', $hoy->dayOfWeekIso)->orderBy('hora_inicio')->get(),
+            'porVencer' => Membresia::with(['cliente', 'plan'])->whereHas('cliente')
+                ->where('estado', 'activo')
+                ->whereBetween('fecha_fin', [$hoy->toDateString(), $hoy->copy()->addDays(7)->toDateString()])
+                ->orderBy('fecha_fin')->get(),
+            'clientes' => Cliente::with('membresiaActiva')->orderBy('nombre')->get(['id_cliente', 'nombre', 'dni']),
+            'nuevosHoy' => Cliente::whereDate('created_at', $hoy)->count(),
+        ]);
+    }
+
+    /**
+     * Caja: ventas del día por método de pago, cobros pendientes, gastos y stock bajo.
+     */
+    private function caja(): View
+    {
+        $hoy = today();
+        $ventasHoy = Venta::deSucursal()->with('cliente')->whereDate('fecha', $hoy)->where('estado', '!=', 'anulado')->orderByDesc('id_venta')->get();
+
+        $productos = Producto::with(['inventario', 'tipo'])->where('activo', true)->get()
+            ->map(fn ($p) => tap($p, fn ($p) => $p->stock_actual = $p->stockEn()))
+            ->filter(fn ($p) => $p->stock_actual <= 5)
+            ->sortBy('stock_actual');
+
+        return view('admin.paneles.caja', [
+            'ventasHoy' => $ventasHoy,
+            'cobradoHoy' => (float) $ventasHoy->where('estado', 'completado')->sum('total'),
+            'porMetodo' => $ventasHoy->where('estado', 'completado')->groupBy('metodo_pago')->map->sum('total'),
+            'pendientes' => Venta::deSucursal()->with('cliente')->where('estado', 'pendiente')->orderBy('fecha')->get(),
+            'gastosHoy' => (float) Gasto::deSucursal()->whereDate('fecha', $hoy)->sum('monto'),
+            'stockBajo' => $productos->values(),
+        ]);
+    }
+
+    /**
+     * Entrenador: sus clases, su semana y sus alumnos. Sin información financiera.
+     */
+    private function coach($user): View
+    {
+        $perfil = $user->entrenador;
+        $hoy = today();
+
+        $clases = $perfil
+            ? Clase::with('clientes')->where('id_entrenador', $perfil->id_entrenador)->orderBy('dia_semana')->orderBy('hora_inicio')->get()
+            : collect();
+
+        $alumnos = $perfil
+            ? Cliente::with('membresiaActiva.plan')
+                ->where(fn ($q) => $q->where('id_entrenador', $perfil->id_entrenador)
+                    ->orWhereHas('clases', fn ($c) => $c->where('clases.id_entrenador', $perfil->id_entrenador)))
+                ->orderBy('nombre')->get()
+            : collect();
+
+        $idsAlumnos = $alumnos->pluck('id_cliente');
+
+        return view('admin.paneles.coach', [
+            'perfil' => $perfil,
+            'clases' => $clases,
+            'clasesHoy' => $clases->where('dia_semana', $hoy->dayOfWeekIso)->values(),
+            'alumnos' => $alumnos,
+            'personales' => $perfil ? $alumnos->where('id_entrenador', $perfil->id_entrenador)->count() : 0,
+            'asistieronHoy' => Asistencia::with('cliente')->whereIn('id_cliente', $idsAlumnos)->whereDate('fecha', $hoy)->orderByDesc('hora_entrada')->get(),
+        ]);
+    }
+
+    /**
+     * Administración: resumen completo de la empresa o sucursal.
+     */
+    private function administracion(): View
     {
         $hoy = Carbon::today();
         $inicioSemana = $hoy->copy()->startOfWeek(Carbon::MONDAY);

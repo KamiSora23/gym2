@@ -16,26 +16,20 @@ use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 /**
- * Usuarios de la empresa actual. El super admin además puede crear super admins.
+ * Usuarios de la empresa actual. Los super admins se gestionan aparte, en la plataforma.
  */
 class UsuarioController extends Controller
 {
     public function index(Request $request): View
     {
         $usuarios = User::with(['role', 'sucursal'])
-            ->where(function ($q) use ($request) {
-                $q->where('id_empresa', Tenant::empresaId());
-
-                if ($request->user()->isSuperAdmin()) {
-                    $q->orWhereHas('role', fn ($r) => $r->where('nombre', Role::SUPER_ADMIN));
-                }
-            })
+            ->where('id_empresa', Tenant::empresaId())
             ->orderBy('name')
             ->get();
 
         return view('admin.usuarios', [
             'usuarios' => $usuarios,
-            'roles' => $this->rolesAsignables($request->user()),
+            'roles' => $this->rolesAsignables(),
             'sucursales' => Tenant::sucursales(),
         ]);
     }
@@ -57,13 +51,9 @@ class UsuarioController extends Controller
 
     public function update(Request $request, User $usuario): RedirectResponse
     {
-        $this->autorizar($request->user(), $usuario);
+        $this->autorizar($usuario);
 
         $datos = $this->validar($request, $usuario);
-
-        if ($this->quitariaUltimoSuperAdmin($usuario, (int) $datos['role_id'])) {
-            return $this->volver('Debe existir al menos un Super Administrador.', 'error');
-        }
 
         if (blank($datos['password'] ?? null)) {
             unset($datos['password']);
@@ -83,14 +73,10 @@ class UsuarioController extends Controller
 
     public function destroy(Request $request, User $usuario): RedirectResponse
     {
-        $this->autorizar($request->user(), $usuario);
+        $this->autorizar($usuario);
 
         if ($usuario->is($request->user())) {
             return $this->volver('No puedes eliminar tu propia cuenta desde aquí.', 'error');
-        }
-
-        if ($this->quitariaUltimoSuperAdmin($usuario, null)) {
-            return $this->volver('Debe existir al menos un Super Administrador.', 'error');
         }
 
         $usuario->delete();
@@ -100,8 +86,7 @@ class UsuarioController extends Controller
 
     private function validar(Request $request, ?User $usuario = null): array
     {
-        $rolesValidos = $this->rolesAsignables($request->user())->pluck('id');
-        $superAdminId = Role::idDe(Role::SUPER_ADMIN);
+        $rolesValidos = $this->rolesAsignables()->pluck('id');
 
         $datos = $request->validateWithBag('usuario', [
             'name' => ['required', 'string', 'max:255'],
@@ -111,43 +96,22 @@ class UsuarioController extends Controller
             'id_sucursal' => ['nullable', Rule::in(Tenant::sucursales()->pluck('id_sucursal'))],
         ]);
 
-        // Los super admin no pertenecen a ninguna empresa; el resto, a la empresa actual.
-        if ((int) $datos['role_id'] === $superAdminId) {
-            $datos['id_empresa'] = null;
-            $datos['id_sucursal'] = null;
-        } else {
-            $datos['id_empresa'] = Tenant::empresaId();
-        }
+        $datos['id_empresa'] = Tenant::empresaId();
 
         return $datos;
     }
 
     /**
-     * Un admin no puede tocar usuarios de otras empresas ni a super admins.
+     * Desde una empresa solo se gestionan los usuarios de esa empresa (nunca super admins).
      */
-    private function autorizar(User $actor, User $usuario): void
+    private function autorizar(User $usuario): void
     {
-        if ($actor->isSuperAdmin()) {
-            return;
-        }
-
         abort_if($usuario->isSuperAdmin() || (int) $usuario->id_empresa !== Tenant::empresaId(), 403);
     }
 
-    private function rolesAsignables(User $actor)
+    private function rolesAsignables()
     {
-        return Role::orderBy('id')->get()
-            ->when(! $actor->isSuperAdmin(), fn ($roles) => $roles->where('nombre', '!=', Role::SUPER_ADMIN))
-            ->values();
-    }
-
-    private function quitariaUltimoSuperAdmin(User $usuario, ?int $nuevoRol): bool
-    {
-        $superAdminId = Role::idDe(Role::SUPER_ADMIN);
-
-        return (int) $usuario->role_id === $superAdminId
-            && $nuevoRol !== $superAdminId
-            && User::where('role_id', $superAdminId)->count() <= 1;
+        return Role::where('nombre', '!=', Role::SUPER_ADMIN)->orderBy('id')->get();
     }
 
     private function crearFichaCliente(User $user): void

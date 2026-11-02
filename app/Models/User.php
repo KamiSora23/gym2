@@ -96,9 +96,9 @@ class User extends Authenticatable
     public function homeRoute(): string
     {
         if ($this->isSuperAdmin()) {
-            return session('empresa_id') ? route('dashboard') : route('empresas.index');
+            return session('empresa_id') ? route('dashboard') : route('plataforma.index');
         }
 
-        return $this->isStaff() ? route('dashboard') : url('/');
+        return $this->isStaff() ? route('dashboard') : route('mi-cuenta');
     }
 }

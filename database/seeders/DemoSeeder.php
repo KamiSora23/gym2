@@ -103,6 +103,17 @@ class DemoSeeder extends Seeder
             ['Roberto Gómez', 'Spinning y boxeo'],
         ])->map(fn ($c) => Entrenador::create($e + ['nombre' => $c[0], 'especialidad' => $c[1], 'id_sucursal' => $principal->id_sucursal, 'activo' => true]));
 
+        $slug = strtolower(preg_replace('/\W+/', '', $empresa->nombre));
+        $usuarioCoach = User::firstOrCreate(['email' => "entrenador@{$slug}.test"], [
+            'name' => $coaches[0]->nombre,
+            'password' => '12345678',
+            'role_id' => Role::idDe(Role::ENTRENADOR),
+            'id_empresa' => $empresa->id_empresa,
+            'id_sucursal' => $principal->id_sucursal,
+            'email_verified_at' => now(),
+        ]);
+        $coaches[0]->update(['user_id' => $usuarioCoach->id]);
+
         $clases = collect([
             ['Yoga', 1, '07:00', '08:00', 1], ['Spinning', 1, '19:00', '20:00', 2], ['Crossfit', 2, '18:00', '19:00', 0],
             ['Pilates', 3, '09:00', '10:00', 1], ['Funcional', 4, '07:00', '08:00', 0], ['Boxeo', 5, '19:00', '20:00', 2],
