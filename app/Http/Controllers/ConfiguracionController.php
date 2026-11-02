@@ -3,38 +3,61 @@
 namespace App\Http\Controllers;
 
 use App\Models\Configuracion;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ConfiguracionController extends Controller
 {
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        $config = Configuracion::first();
+        $hexColor = ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'];
 
-        if (!$config) {
-            $config = new Configuracion();
+        $datos = $request->validate([
+            'nombre_gym' => ['required', 'string', 'max:100'],
+            'slogan' => ['nullable', 'string', 'max:150'],
+            'email' => ['nullable', 'email', 'max:150'],
+            'telefono' => ['nullable', 'string', 'max:30'],
+            'direccion' => ['nullable', 'string', 'max:200'],
+            'facebook' => ['nullable', 'url', 'max:255'],
+            'instagram' => ['nullable', 'url', 'max:255'],
+            'tiktok' => ['nullable', 'url', 'max:255'],
+            'color_primario' => $hexColor,
+            'color_sidebar' => $hexColor,
+            'color_secundario' => $hexColor,
+            'horario_lunes' => ['nullable', 'string', 'max:60'],
+            'horario_martes' => ['nullable', 'string', 'max:60'],
+            'horario_miercoles' => ['nullable', 'string', 'max:60'],
+            'horario_jueves' => ['nullable', 'string', 'max:60'],
+            'horario_viernes' => ['nullable', 'string', 'max:60'],
+            'horario_sabado' => ['nullable', 'string', 'max:60'],
+            'horario_domingo' => ['nullable', 'string', 'max:60'],
+            'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp,svg', 'max:2048'],
+            'favicon' => ['nullable', 'file', 'mimes:png,ico,svg', 'max:512'],
+        ]);
+
+        $config = Configuracion::query()->first() ?? new Configuracion(Configuracion::VALORES_POR_DEFECTO);
+
+        foreach (['logo', 'favicon'] as $archivo) {
+            unset($datos[$archivo]);
+
+            if ($request->hasFile($archivo)) {
+                if ($config->{$archivo}) {
+                    Storage::disk('public')->delete($config->{$archivo});
+                }
+
+                $datos[$archivo] = $request->file($archivo)->store('branding', 'public');
+            }
         }
 
-        $config->nombre_gym = $request->nombre_gym ?? $config->nombre_gym;
-        $config->email = $request->email;
-        $config->telefono = $request->telefono;
-        $config->direccion = $request->direccion;
-        $config->update([
-            'color_primario' => $request->color_primario ?? $config->color_primario,
-            'color_sidebar' => $request->color_sidebar ?? $config->color_sidebar,
-            'color_secundario' => $request->color_secundario ?? $config->color_secundario,
-        ]);
-        $config->horario_lunes = $request->horario_lunes;
-        $config->horario_martes = $request->horario_martes;
-        $config->horario_miercoles = $request->horario_miercoles;
-        $config->horario_jueves = $request->horario_jueves;
-        $config->horario_viernes = $request->horario_viernes;
-        $config->horario_sabado = $request->horario_sabado;
-        $config->horario_domingo = $request->horario_domingo;
+        // Los colores vacíos conservan el valor actual.
+        foreach (['color_primario', 'color_sidebar', 'color_secundario'] as $color) {
+            $datos[$color] = $datos[$color] ?? $config->{$color};
+        }
 
+        $config->fill($datos)->save();
 
-        $config->save();
-
-        return back()->with('success', 'Configuración actualizada');
+        return redirect()->route('dashboard', ['seccion' => 'config'])
+            ->with('success', 'Configuración actualizada correctamente.');
     }
 }

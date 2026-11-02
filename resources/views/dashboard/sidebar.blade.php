@@ -1,93 +1,79 @@
+@php
+    $item = fn (string $pagina) => 'menu-item'.($seccion === $pagina ? ' active' : '');
+@endphp
 
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
 
-   <div class="profile-section">
+    <div class="profile-section">
+        <div class="profile-avatar">
+            {{ strtoupper(mb_substr($usuario->name, 0, 1)) }}
+        </div>
 
-    <div class="profile-avatar">
-        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+        <div class="profile-info">
+            <h4 title="{{ $usuario->name }}">{{ $usuario->name }}</h4>
+            <p>{{ $usuario->role?->etiqueta }}</p>
+        </div>
     </div>
 
-    <div class="profile-info">
-        <h4>{{ Auth::user()->name }}</h4>
-        <p>{{ Auth::user()->email }}</p>
-    </div>
-
-</div>
-    <ul class="sidebar-menu">
+    <nav class="sidebar-menu">
 
         <div class="menu-category">Operaciones</div>
 
-        <li class="active" onclick="showPage('reportes')">
-            <i class="fas fa-chart-line"></i>
-            Reportes
-        </li>
+        <button type="button" class="{{ $item('reportes') }}" data-page="reportes">
+            <i class="fas fa-chart-line"></i> Resumen
+        </button>
 
-        <li onclick="showPage('asistencias')">
-            <i class="fas fa-calendar-check"></i>
-            Asistencias
-        </li>
+        <button type="button" class="{{ $item('asistencias') }}" data-page="asistencias">
+            <i class="fas fa-calendar-check"></i> Asistencias
+        </button>
 
-        <li onclick="showPage('ventas')">
-            <i class="fas fa-shopping-cart"></i>
-            Ventas
-        </li>
+        <button type="button" class="{{ $item('ventas') }}" data-page="ventas">
+            <i class="fas fa-cart-shopping"></i> Ventas
+        </button>
 
-        <li onclick="showPage('gastos')">
-            <i class="fas fa-file-invoice-dollar"></i>
-            Gastos
-        </li>
+        <button type="button" class="{{ $item('gastos') }}" data-page="gastos">
+            <i class="fas fa-file-invoice-dollar"></i> Gastos
+        </button>
 
         <div class="menu-category">Gestión</div>
 
-        <li onclick="showPage('catalogo')">
-            <i class="fas fa-box-open"></i>
-            Catálogo
-        </li>
+        <button type="button" class="{{ $item('catalogo') }}" data-page="catalogo">
+            <i class="fas fa-box-open"></i> Catálogo
+        </button>
 
-        <li onclick="showPage('entrenamiento')">
-            <i class="fas fa-dumbbell"></i>
-            Entrenamiento
-        </li>
+        <button type="button" class="{{ $item('entrenamiento') }}" data-page="entrenamiento">
+            <i class="fas fa-dumbbell"></i> Entrenamiento <span class="menu-tag">DEMO</span>
+        </button>
 
-        <li onclick="showPage('marketing')">
-            <i class="fas fa-bullhorn"></i>
-            Marketing
-        </li>
-        <li onclick="showPage('config')">
-            <i class="fas fa-cog"></i>
-            Configuración del Sistema
-        </li>
+        <button type="button" class="{{ $item('marketing') }}" data-page="marketing">
+            <i class="fas fa-bullhorn"></i> Marketing <span class="menu-tag">DEMO</span>
+        </button>
 
-    </ul>
+        @if ($puede['usuarios'] || $puede['config'])
+            <div class="menu-category">Administración</div>
+        @endif
 
-    <ul class="sidebar-menu" style="flex-grow:0; border-top:1px solid #eaeaea;">
+        @if ($puede['usuarios'])
+            <button type="button" class="{{ $item('usuarios') }}" data-page="usuarios">
+                <i class="fas fa-users-gear"></i> Usuarios y roles
+            </button>
+        @endif
 
-        <li>
+        @if ($puede['config'])
+            <button type="button" class="{{ $item('config') }}" data-page="config">
+                <i class="fas fa-gear"></i> Configuración
+            </button>
+        @endif
 
-            <form method="POST" action="{{ route('logout') }}">
-    @csrf
+    </nav>
 
-    <button type="submit" style="
-        width:100%;
-        border:none;
-        background:none;
-        cursor:pointer;
-        padding:1rem 1.5rem;
-        text-align:left;
-        color:#6b7280;
-        font-size:1.1rem;
-        font-weight:500;
-        display:flex;
-        align-items:center;
-        gap:15px;
-    ">
-        <i class="fas fa-sign-out-alt"></i>
-        Salir
-    </button>
-</form>
-
-        </li>
-
-    </ul>
+    <div class="sidebar-footer">
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="menu-item">
+                <i class="fas fa-right-from-bracket"></i> Cerrar sesión
+            </button>
+        </form>
+    </div>
 
 </aside>

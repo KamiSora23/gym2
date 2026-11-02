@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class User extends Authenticatable
 {
@@ -14,7 +14,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role_id', // AGREGAR ESTO
+        'role_id',
     ];
 
     protected $hidden = [
@@ -30,9 +30,54 @@ class User extends Authenticatable
         ];
     }
 
-    // RELACIÓN CON ROLES
     public function role()
     {
         return $this->belongsTo(Role::class);
+    }
+
+    public function cliente()
+    {
+        return $this->hasOne(Cliente::class);
+    }
+
+    public function rolNombre(): ?string
+    {
+        return $this->role?->nombre;
+    }
+
+    /**
+     * Verifica si el usuario tiene alguno de los roles indicados.
+     */
+    public function hasRole(string ...$roles): bool
+    {
+        return in_array($this->rolNombre(), $roles, true);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole(Role::SUPER_ADMIN);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasRole(Role::SUPER_ADMIN, Role::ADMIN);
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->hasRole(...Role::STAFF);
+    }
+
+    public function isCliente(): bool
+    {
+        return $this->hasRole(Role::CLIENTE);
+    }
+
+    /**
+     * Ruta a la que debe ir el usuario después de iniciar sesión.
+     */
+    public function homeRoute(): string
+    {
+        return $this->isStaff() ? route('dashboard') : url('/');
     }
 }

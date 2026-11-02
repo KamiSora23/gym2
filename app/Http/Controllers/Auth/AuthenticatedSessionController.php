@@ -28,14 +28,8 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $user = Auth::user();
-        
-//avance
-        if ($user->role->nombre === 'cliente') {
-            return redirect('/');
-        }
-
-        return redirect()->route('dashboard');
+        // El personal va al panel; los clientes, al sitio público.
+        return redirect()->intended($request->user()->homeRoute());
     }
 
     /**

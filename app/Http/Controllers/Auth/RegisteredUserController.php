@@ -3,16 +3,17 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cliente;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\DB;
 
 class RegisteredUserController extends Controller
 {
@@ -33,31 +34,33 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
-        
-//Avance
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role_id' => 2,
-        ]);
 
-        DB::table('clientes')->insert([
-            'nombre' => $request->name,
-            'correo' => $request->email,
-            'dni' => 'TEMP-' . rand(1000, 9999),
-            'user_id' => $user->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // El registro público siempre crea clientes, junto con su ficha.
+        $user = DB::transaction(function () use ($request) {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => $request->password,
+                'role_id' => Role::idDe(Role::CLIENTE),
+            ]);
+
+            Cliente::create([
+                'nombre' => $user->name,
+                'correo' => $user->email,
+                'dni' => 'TEMP-'.$user->id,
+                'user_id' => $user->id,
+            ]);
+
+            return $user;
+        });
 
         event(new Registered($user));
 
+        Auth::login($user);
 
-
-        return redirect()->route('login');
+        return redirect('/')->with('success', '¡Bienvenido! Tu cuenta fue creada correctamente.');
     }
 }

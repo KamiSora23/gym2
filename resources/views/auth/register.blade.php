@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>GYM IMPULSO - Registro</title>
+    <title>{{ $config->nombre_gym }} - Registro</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -93,17 +93,11 @@
 
                     <!-- LOGO -->
                     <div class="text-center mb-4">
-                        <center>
-                            <img src="{{ $config->logo 
-                            ? asset('storage/' . $config->logo)
-                            : asset('img/logo.png')
-                            }}"
-                                class="w-14 h-14 object-contain">
-                        </center>
+                        <img src="{{ $config->logo_url }}" alt="Logo" style="width:64px;height:64px;object-fit:contain;" class="mb-2">
 
                         <a href="{{ url('/') }}" class="text-decoration-none">
                             <h1 class="gym-logo">
-                                <span>GYM</span> IMPULSO
+                                <span>{{ $config->nombrePartido()[0] }}</span> {{ $config->nombrePartido()[1] }}
                             </h1>
                         </a>
 

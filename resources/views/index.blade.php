@@ -8,20 +8,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GYM IMPULSO - Tu mejor versión empieza aquí</title>
+    <title>{{ $config->nombre_gym }} - {{ $config->slogan ?: 'Tu mejor versión empieza aquí' }}</title>
+    <link rel="icon" href="{{ $config->favicon_url }}">
 </head>
 
 <body>
     <header class="navbar navbar-expand-lg fixed-top" id="mainNav">
         <div class="container">
             <a class="navbar-brand fw-bold" href="#hero">
-                <span class="text-primary">
-                    {{ explode(' ', $config->nombre_gym)[0] ?? 'GYM' }}
-                </span>
-
-                <span class="text-white">
-                    {{ explode(' ', $config->nombre_gym)[1] ?? 'IMPULSO' }}
-                </span>
+                <span class="text-primary">{{ $config->nombrePartido()[0] }}</span>
+                <span class="text-white">{{ $config->nombrePartido()[1] }}</span>
             </a>
             <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse"
                 data-bs-target="#navbarNav">
@@ -61,6 +57,14 @@
                             </button>
 
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                @if (Auth::user()->isStaff())
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('dashboard') }}">
+                                            <i class="bi bi-speedometer2 me-2"></i>
+                                            Panel administrativo
+                                        </a>
+                                    </li>
+                                @endif
 
                                 <li>
                                     <a class="dropdown-item" href="{{ route('profile.edit') }}">
@@ -101,6 +105,17 @@
             </div>
         </div>
     </header>
+
+    @foreach (['success' => 'success', 'error' => 'danger'] as $clave => $tipo)
+        @if (session($clave))
+            <div class="position-fixed top-0 start-50 translate-middle-x mt-5 pt-4" style="z-index: 1080; max-width: 92vw;">
+                <div class="alert alert-{{ $tipo }} alert-dismissible fade show shadow mt-3" role="alert">
+                    {{ session($clave) }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            </div>
+        @endif
+    @endforeach
 
     <section id="hero" class="hero-section position-relative">
         <div id="heroCarousel" class="carousel slide carousel-fade h-100" data-bs-ride="carousel">
@@ -413,13 +428,11 @@
                         <div class="step-number bg-light">
                             <i class="bi bi-envelope text-primary"></i>
                         </div>
-                        <div class="text-xs text-gray-400 break-all leading-4 max-w-[180px]>
-                            <h6 class=" fw-bold mb-0 small">Email</h6>
-                            <div class="text-xs text-gray-400 break-all leading-4 max-w-[180px]">
-                                <p class="text-muted mb-0 small ">
-                                    {{ $config->email ?? 'info@gymimpulso.com' }}
-                                </p>
-                            </div>
+                        <div class="text-break">
+                            <h6 class="fw-bold mb-0 small">Email</h6>
+                            <p class="text-muted mb-0 small">
+                                {{ $config->email ?? 'info@gymimpulso.com' }}
+                            </p>
                         </div>
                     </div>
 

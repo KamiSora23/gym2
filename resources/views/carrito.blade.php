@@ -7,18 +7,18 @@
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GYM IMPULSO - Carrito</title>
+    <title>{{ $config->nombre_gym }} - Carrito</title>
 </head>
 <body>
     <header class="navbar navbar-expand-lg fixed-top scrolled" id="mainNav">
         <div class="container">
             <a class="navbar-brand fw-bold" href="#hero">
                 <span class="text-primary">
-                    {{ explode(' ', $config->nombre_gym)[0] ?? 'GYM' }}
+                    {{ $config->nombrePartido()[0] }}
                 </span>
 
                 <span class="text-white">
-                    {{ explode(' ', $config->nombre_gym)[1] ?? 'IMPULSO' }}
+                    {{ $config->nombrePartido()[1] }}
                 </span>
             </a>
             <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -54,6 +54,14 @@
                         </button>
                     
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                @if (Auth::user()->isStaff())
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('dashboard') }}">
+                                            <i class="bi bi-speedometer2 me-2"></i>
+                                            Panel administrativo
+                                        </a>
+                                    </li>
+                                @endif
                     
                             <li>
                                 <a class="dropdown-item" href="{{ route('profile.edit') }}">
@@ -82,7 +90,7 @@
                     
                     @else
                     
-                    <a href="{{ route('login') }}"class="nav-link">
+                    <a href="{{ route('login') }}" class="nav-link">
                          <i class="bi bi-person-circle fs-5"></i>
                     </a>
                     

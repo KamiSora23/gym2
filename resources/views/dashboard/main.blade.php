@@ -1,899 +1,881 @@
-<main class="main-content">
+@php
+    $dinero = fn ($valor) => '$'.number_format((float) $valor, 2);
+    $pagina = fn (string $nombre) => 'page-content'.($seccion === $nombre ? '' : ' hidden');
+    $estadoClase = fn (?string $estado) => match ($estado) {
+        'completado', 'pagado', 'activo' => 'status-active',
+        'pendiente' => 'status-pending',
+        'anulado', 'cancelado' => 'status-cancelled',
+        default => 'status-info',
+    };
+@endphp
 
-    <div id="page-reportes" class="page-content">
-        <div class="tabs-container">
-            <button class="tab active"><i class="fas fa-chart-pie"></i> Indicadores</button>
-            <button class="tab"><i class="fas fa-coins"></i> Ingresos</button>
-            <button class="tab"><i class="fas fa-store"></i> Ventas/Día</button>
-            <button class="tab"><i class="fas fa-file-alt"></i> Reportes</button>
+{{-- ================= RESUMEN ================= --}}
+<section id="page-reportes" class="{{ $pagina('reportes') }}">
+    <div class="page-header">
+        <div>
+            <h2><span class="icon"><i class="fas fa-chart-line"></i></span> Hola, {{ strtok($usuario->name, ' ') }}</h2>
+            <p>Este es el resumen de la semana en {{ $config->nombre_gym }}.</p>
         </div>
+        <div class="date-display" id="current-date">{{ now()->locale('es')->translatedFormat('l, j \d\e F \d\e Y') }}</div>
+    </div>
 
-        <div class="dashboard-layout">
-            <div>
-                <div class="stats-grid">
-                    <div class="stat-card cyan">
-                        <div class="stat-title">Clientes Activos</div>
-                        <div class="stat-value">6</div>
-                        <div class="stat-icon icon-cyan"><i class="fas fa-users"></i></div>
-                        <span class="badge bg-cyan">↑ activos</span>
-                    </div>
-                    <div class="stat-card green">
-                        <div class="stat-title">Ingresos Semana</div>
-                        <div class="stat-value">$1,500.00</div>
-                        <div class="stat-icon icon-green"><i class="fas fa-dollar-sign"></i></div>
-                        <span class="badge bg-green">↑ bruto</span>
-                    </div>
-                    <div class="stat-card red">
-                        <div class="stat-title">Gastos Semana</div>
-                        <div class="stat-value">$440.00</div>
-                        <div class="stat-icon icon-red"><i class="fas fa-receipt"></i></div>
-                        <span class="badge bg-red">↓ egresos</span>
-                    </div>
-                    <div class="stat-card purple">
-                        <div class="stat-title">Ganancias Netas</div>
-                        <div class="stat-value">$1,060.00</div>
-                        <div class="stat-icon icon-purple"><i class="fas fa-chart-area"></i></div>
-                        <span class="badge bg-cyan">⤓ neto</span>
-                    </div>
+    <div class="dashboard-layout">
+        <div>
+            <div class="stats-grid">
+                <div class="stat-card cyan">
+                    <div class="stat-title">Clientes activos</div>
+                    <div class="stat-value">{{ $stats['clientes_activos'] }}</div>
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-hint">{{ $stats['clientes_total'] }} registrados</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-title">Ingresos semana</div>
+                    <div class="stat-value">{{ $dinero($stats['ingresos_semana']) }}</div>
+                    <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+                    <div class="stat-hint">Bruto</div>
+                </div>
+                <div class="stat-card red">
+                    <div class="stat-title">Gastos semana</div>
+                    <div class="stat-value">{{ $dinero($stats['gastos_semana']) }}</div>
+                    <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+                    <div class="stat-hint">Egresos</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="stat-title">Ganancia neta</div>
+                    <div class="stat-value">{{ $dinero($stats['neto_semana']) }}</div>
+                    <div class="stat-icon"><i class="fas fa-chart-area"></i></div>
+                    <div class="stat-hint">Ingresos − gastos</div>
+                </div>
+                <div class="stat-card blue">
+                    <div class="stat-title">Inscritos semana</div>
+                    <div class="stat-value">{{ $stats['inscritos_semana'] }}</div>
+                    <div class="stat-icon"><i class="fas fa-user-plus"></i></div>
+                    <div class="stat-hint">Nuevos clientes</div>
+                </div>
+                <div class="stat-card orange">
+                    <div class="stat-title">Pagos pendientes</div>
+                    <div class="stat-value">{{ $stats['pagos_pendientes'] }}</div>
+                    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                    <div class="stat-hint">Por cobrar</div>
+                </div>
+                <div class="stat-card cyan">
+                    <div class="stat-title">Asistencias hoy</div>
+                    <div class="stat-value">{{ $stats['asistencias_hoy'] }}</div>
+                    <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+                    <div class="stat-hint">Check-ins</div>
+                </div>
+                <div class="stat-card pink">
+                    <div class="stat-title">Membresías del mes</div>
+                    <div class="stat-value">{{ $stats['renovaciones_mes'] }}</div>
+                    <div class="stat-icon"><i class="fas fa-rotate"></i></div>
+                    <div class="stat-hint">Altas y renovaciones</div>
+                </div>
+            </div>
 
-                    <div class="stat-card cyan">
-                        <div class="stat-title">Inscritos Semana</div>
-                        <div class="stat-value">0</div>
-                        <div class="stat-icon icon-cyan"><i class="fas fa-user-plus"></i></div>
-                        <span class="badge bg-cyan">+ nuevos</span>
+            <div class="charts-section">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Asistencias de la semana</h3>
+                        <button type="button" class="btn btn-light btn-sm" data-page="asistencias">Ver detalle</button>
                     </div>
-                    <div class="stat-card orange">
-                        <div class="stat-title">Pagos Pendientes</div>
-                        <div class="stat-value">2</div>
-                        <div class="stat-icon icon-orange"><i class="fas fa-clock"></i></div>
-                        <span class="badge bg-cyan">⏳ por cobrar</span>
-                    </div>
-                    <div class="stat-card blue">
-                        <div class="stat-title">Asistencias Hoy</div>
-                        <div class="stat-value">0</div>
-                        <div class="stat-icon icon-blue"><i class="fas fa-calendar-day"></i></div>
-                        <span class="badge bg-cyan">↑ check-in</span>
-                    </div>
-                    <div class="stat-card purple" style="border-bottom-color: #ff9ff3;">
-                        <div class="stat-title">Renovaciones Mes</div>
-                        <div class="stat-value">0</div>
-                        <div class="stat-icon" style="background:#fce4ec; color:#e91e63;"><i class="fas fa-sync-alt"></i></div>
-                        <span class="badge bg-cyan">↻ renovado</span>
+                    <div class="chart-box">
+                        <canvas id="barChart"></canvas>
                     </div>
                 </div>
-
-                <div class="charts-section">
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3>Asistencias de la semana</h3>
-                            <button style="background:var(--primary-red); color:white; border:none; padding:5px 15px; border-radius:5px;">Ir</button>
-                        </div>
-                        <canvas id="barChart" height="200"></canvas>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Balance semanal</h3>
                     </div>
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3>Balance semanal</h3>
+                    <div class="donut-box">
+                        <canvas id="donutChart"></canvas>
+                        <div class="donut-center">
+                            <small>NETO</small>
+                            <strong style="color: {{ $stats['neto_semana'] >= 0 ? '#059669' : '#dc2626' }}">{{ $dinero($stats['neto_semana']) }}</strong>
                         </div>
-                        <div style="position: relative; height: 150px; display:flex; justify-content:center; align-items:center;">
-                            <canvas id="donutChart"></canvas>
-                            <div style="position: absolute; text-align: center;">
-                                <div style="font-size: 0.6rem; color: #888;">NETO</div>
-                                <div style="font-size: 1.2rem; font-weight: bold; color: #10ac84;">$1,060</div>
-                            </div>
-                        </div>
-                        <ul class="chart-legend" style="margin-top: 1rem;">
-                            <li>Ingresos <span style="color: #10ac84;">$1,500.00</span></li>
-                            <li>Gastos <span style="color: #ff6b6b;">$440.00</span></li>
-                            <li style="border-top:1px solid #eee; padding-top:5px; margin-top:5px;">Ganancia Neta <span>$1,060.00</span></li>
-                        </ul>
+                    </div>
+                    <ul class="chart-legend">
+                        <li><span><i class="dot" style="background:#10b981"></i>Ingresos</span> <span class="val">{{ $dinero($stats['ingresos_semana']) }}</span></li>
+                        <li><span><i class="dot" style="background:#ef4444"></i>Gastos</span> <span class="val">{{ $dinero($stats['gastos_semana']) }}</span></li>
+                        <li class="total">Ganancia neta <span class="val">{{ $dinero($stats['neto_semana']) }}</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="summary-card">
+                <div class="summary-title">RESUMEN OPERATIVO</div>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <h2>{{ $stats['asistencias_hoy'] }}</h2>
+                        <p>Check-ins hoy</p>
+                    </div>
+                    <div class="summary-item">
+                        <h2>{{ $stats['pagos_pendientes'] }}</h2>
+                        <p>Pendientes</p>
                     </div>
                 </div>
             </div>
 
-            <div class="right-panel">
-                <div class="date-display" id="current-date">Lunes, 6 de abril de 2026</div>
-
-                <div class="summary-card">
-                    <div class="summary-title">RESUMEN OPERATIVO</div>
-                    <div class="summary-grid">
-                        <div class="summary-item">
-                            <h2>0</h2>
-                            <p>Check-ins hoy</p>
-                        </div>
-                        <div class="summary-item">
-                            <h2>2</h2>
-                            <p>Pendientes</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 style="font-size:0.8rem; color:var(--text-gray); margin-bottom:10px;">Últimas transacciones</h4>
-                    <div style="background:white; padding:2rem; text-align:center; border-radius:var(--border-radius); color:#a3aed1; font-size:0.9rem;">
-                        Sin transacciones recientes
-                    </div>
-                </div>
+            <div class="panel-card">
+                <h4>Últimas transacciones</h4>
+                @if ($ultimasVentas->isEmpty())
+                    <p class="empty-state" style="padding:1.5rem 0 !important;">
+                        <i class="fas fa-receipt"></i> Sin transacciones recientes
+                    </p>
+                @else
+                    <ul class="tx-list">
+                        @foreach ($ultimasVentas as $venta)
+                            <li>
+                                <span>
+                                    {{ $venta->cliente ?? 'Cliente' }}
+                                    <small>#{{ str_pad($venta->id_venta, 5, '0', STR_PAD_LEFT) }} · {{ \Illuminate\Support\Carbon::parse($venta->fecha)->format('d/m/Y') }}</small>
+                                </span>
+                                <strong>{{ $dinero($venta->total) }}</strong>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
             </div>
         </div>
     </div>
+</section>
 
-    <div id="page-asistencias" class="page-content hidden">
-        <div class="page-header">
-            <h2><i class="fas fa-calendar-check" style="color:var(--primary-red); margin-right:10px;"></i>Asistencias</h2>
-            <button class="btn-primary"><i class="fas fa-plus"></i> Registrar Asistencia</button>
+{{-- ================= ASISTENCIAS ================= --}}
+<section id="page-asistencias" class="{{ $pagina('asistencias') }}">
+    <div class="page-header">
+        <div>
+            <h2><span class="icon"><i class="fas fa-calendar-check"></i></span> Asistencias</h2>
+            <p>Check-ins registrados hoy.</p>
         </div>
+        @if ($puede['asistencias'])
+            <button type="button" class="btn btn-primary" data-toggle-target="form-asistencia">
+                <i class="fas fa-plus"></i> Registrar asistencia
+            </button>
+        @endif
+    </div>
 
-        <div class="form-card">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Buscar Cliente</label>
-                    <div class="search-box">
-                        <i class="fas fa-search" style="color:#888;"></i>
-                        <input type="text" placeholder="Ingresa nombre o ID...">
+    @if ($puede['asistencias'])
+        <form id="form-asistencia" method="POST" action="{{ route('asistencias.store') }}"
+            class="form-card {{ $errors->asistencia->any() ? '' : 'hidden' }}">
+            @csrf
+            <h3><i class="fas fa-user-check"></i> Nuevo check-in</h3>
+            @if ($clientes->isEmpty())
+                <p style="color:var(--text-gray); margin:0;">Aún no hay clientes registrados.</p>
+            @else
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="id_cliente">Cliente</label>
+                        <select id="id_cliente" name="id_cliente" required>
+                            <option value="">Selecciona un cliente…</option>
+                            @foreach ($clientes as $cliente)
+                                <option value="{{ $cliente->id_cliente }}" @selected(old('id_cliente') == $cliente->id_cliente)>
+                                    {{ $cliente->nombre }} — {{ $cliente->dni }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('id_cliente', 'asistencia') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha y hora</label>
+                        <input type="text" value="{{ now()->format('d/m/Y H:i') }}" disabled>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Rango de Fechas</label>
-                    <input type="date" value="2026-05-11">
+                <div class="form-actions">
+                    <button type="button" class="btn btn-light" data-toggle-target="form-asistencia">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Registrar</button>
                 </div>
+            @endif
+        </form>
+    @endif
+
+    <div class="table-card">
+        <div class="table-header">
+            <h3>Registro de hoy</h3>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="search" placeholder="Buscar cliente…" data-filter-table="tabla-asistencias">
             </div>
         </div>
-
-        <div class="table-card">
-            <div class="table-header">
-                <h3>Registro de Asistencias</h3>
-                <span style="color:var(--text-gray); font-size:0.9rem;">Total: 0 asistencias</span>
-            </div>
-            <table>
+        <div class="table-scroll">
+            <table class="data-table" id="tabla-asistencias">
                 <thead>
                     <tr>
                         <th>Cliente</th>
                         <th>Fecha</th>
-                        <th>Hora</th>
-                        <th>Tipo</th>
+                        <th>Entrada</th>
+                        <th>Salida</th>
                         <th>Estado</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td colspan="5" style="text-align:center; padding:3rem; color:var(--text-gray);">
-                            <i class="fas fa-calendar-times" style="font-size:3rem; margin-bottom:1rem; display:block;"></i>
-                            No hay asistencias registradas hoy
-                        </td>
-                    </tr>
+                    @forelse ($asistencias as $asistencia)
+                        <tr>
+                            <td>{{ $asistencia->cliente }}</td>
+                            <td>{{ \Illuminate\Support\Carbon::parse($asistencia->fecha)->format('d/m/Y') }}</td>
+                            <td>{{ substr($asistencia->hora_entrada, 0, 5) }}</td>
+                            <td>{{ $asistencia->hora_salida ? substr($asistencia->hora_salida, 0, 5) : '—' }}</td>
+                            <td>
+                                @if ($asistencia->hora_salida)
+                                    <span class="status-badge status-info">Finalizada</span>
+                                @else
+                                    <span class="status-badge status-active">En el gym</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <i class="fas fa-calendar-xmark"></i>
+                                No hay asistencias registradas hoy
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
     </div>
+</section>
 
-    <div id="page-ventas" class="page-content hidden">
-        <div class="page-header">
-            <h2><i class="fas fa-shopping-cart" style="color:var(--primary-red); margin-right:10px;"></i>Ventas</h2>
-            <button class="btn-primary"><i class="fas fa-plus"></i> Nueva Venta</button>
+{{-- ================= VENTAS ================= --}}
+<section id="page-ventas" class="{{ $pagina('ventas') }}">
+    <div class="page-header">
+        <div>
+            <h2><span class="icon"><i class="fas fa-cart-shopping"></i></span> Ventas</h2>
+            <p>Historial de ventas y métricas de la semana.</p>
         </div>
+    </div>
 
-        <div class="stats-grid" style="margin-bottom:1.5rem;">
-            <div class="stat-card green">
-                <div class="stat-title">Ventas Hoy</div>
-                <div class="stat-value">$0.00</div>
-                <div class="stat-icon icon-green"><i class="fas fa-cash-register"></i></div>
-            </div>
-            <div class="stat-card cyan">
-                <div class="stat-title">Ventas Semana</div>
-                <div class="stat-value">$1,500.00</div>
-                <div class="stat-icon icon-cyan"><i class="fas fa-chart-line"></i></div>
-            </div>
-            <div class="stat-card purple">
-                <div class="stat-title">Transacciones</div>
-                <div class="stat-value">0</div>
-                <div class="stat-icon icon-purple"><i class="fas fa-receipt"></i></div>
-            </div>
-            <div class="stat-card orange">
-                <div class="stat-title">Ticket Promedio</div>
-                <div class="stat-value">$0.00</div>
-                <div class="stat-icon icon-orange"><i class="fas fa-ticket-alt"></i></div>
+    <div class="stats-grid">
+        <div class="stat-card green">
+            <div class="stat-title">Ventas hoy</div>
+            <div class="stat-value">{{ $dinero($stats['ventas_hoy']) }}</div>
+            <div class="stat-icon"><i class="fas fa-cash-register"></i></div>
+        </div>
+        <div class="stat-card cyan">
+            <div class="stat-title">Ventas semana</div>
+            <div class="stat-value">{{ $dinero($stats['ventas_semana']) }}</div>
+            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-title">Transacciones</div>
+            <div class="stat-value">{{ $stats['num_ventas_semana'] }}</div>
+            <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-title">Ticket promedio</div>
+            <div class="stat-value">{{ $dinero($stats['ticket_promedio']) }}</div>
+            <div class="stat-icon"><i class="fas fa-ticket"></i></div>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-header">
+            <h3>Historial de ventas</h3>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="search" placeholder="Buscar venta…" data-filter-table="tabla-ventas">
             </div>
         </div>
-
-        <div class="table-card">
-            <div class="table-header">
-                <h3>Historial de Ventas</h3>
-                <div class="search-box">
-                    <i class="fas fa-search" style="color:#888;"></i>
-                    <input type="text" placeholder="Buscar venta...">
-                </div>
-            </div>
-            <table>
+        <div class="table-scroll">
+            <table class="data-table" id="tabla-ventas">
                 <thead>
                     <tr>
                         <th>Folio</th>
                         <th>Cliente</th>
-                        <th>Concepto</th>
-                        <th>Monto</th>
-                        <th>Método de Pago</th>
                         <th>Fecha</th>
+                        <th>Total</th>
                         <th>Estado</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td colspan="7" style="text-align:center; padding:3rem; color:var(--text-gray);">
-                            <i class="fas fa-shopping-basket" style="font-size:3rem; margin-bottom:1rem; display:block;"></i>
-                            No hay ventas registradas
-                        </td>
-                    </tr>
+                    @forelse ($ventas as $venta)
+                        <tr>
+                            <td>#{{ str_pad($venta->id_venta, 5, '0', STR_PAD_LEFT) }}</td>
+                            <td>{{ $venta->cliente ?? '—' }}</td>
+                            <td>{{ \Illuminate\Support\Carbon::parse($venta->fecha)->format('d/m/Y') }}</td>
+                            <td class="money-in">{{ $dinero($venta->total) }}</td>
+                            <td><span class="status-badge {{ $estadoClase($venta->estado) }}">{{ ucfirst($venta->estado) }}</span></td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <i class="fas fa-basket-shopping"></i>
+                                No hay ventas registradas
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
     </div>
+</section>
 
-    <div id="page-gastos" class="page-content hidden">
-        <div class="page-header">
-            <h2><i class="fas fa-file-invoice-dollar" style="color:var(--primary-red); margin-right:10px;"></i>Gastos</h2>
-            <button class="btn-primary"><i class="fas fa-plus"></i> Nuevo Gasto</button>
+{{-- ================= GASTOS ================= --}}
+<section id="page-gastos" class="{{ $pagina('gastos') }}">
+    <div class="page-header">
+        <div>
+            <h2><span class="icon"><i class="fas fa-file-invoice-dollar"></i></span> Gastos</h2>
+            <p>Control de egresos del gimnasio.</p>
         </div>
+        @if ($puede['gastos'])
+            <button type="button" class="btn btn-primary" data-toggle-target="form-gasto">
+                <i class="fas fa-plus"></i> Nuevo gasto
+            </button>
+        @endif
+    </div>
 
-        <div class="stats-grid" style="margin-bottom:1.5rem;">
-            <div class="stat-card red">
-                <div class="stat-title">Gastos Hoy</div>
-                <div class="stat-value">$0.00</div>
-                <div class="stat-icon icon-red"><i class="fas fa-money-bill-wave"></i></div>
-            </div>
-            <div class="stat-card orange">
-                <div class="stat-title">Gastos Semana</div>
-                <div class="stat-value">$440.00</div>
-                <div class="stat-icon icon-orange"><i class="fas fa-chart-bar"></i></div>
-            </div>
-            <div class="stat-card blue">
-                <div class="stat-title">Gastos Mes</div>
-                <div class="stat-value">$1,800.00</div>
-                <div class="stat-icon icon-blue"><i class="fas fa-calendar"></i></div>
-            </div>
-            <div class="stat-card purple">
-                <div class="stat-title">Pendientes</div>
-                <div class="stat-value">2</div>
-                <div class="stat-icon icon-purple"><i class="fas fa-clock"></i></div>
-            </div>
+    <div class="stats-grid">
+        <div class="stat-card red">
+            <div class="stat-title">Gastos hoy</div>
+            <div class="stat-value">{{ $dinero($stats['gastos_hoy']) }}</div>
+            <div class="stat-icon"><i class="fas fa-money-bill-wave"></i></div>
         </div>
+        <div class="stat-card orange">
+            <div class="stat-title">Gastos semana</div>
+            <div class="stat-value">{{ $dinero($stats['gastos_semana']) }}</div>
+            <div class="stat-icon"><i class="fas fa-chart-bar"></i></div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-title">Gastos mes</div>
+            <div class="stat-value">{{ $dinero($stats['gastos_mes']) }}</div>
+            <div class="stat-icon"><i class="fas fa-calendar"></i></div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-title">Registros</div>
+            <div class="stat-value">{{ $gastos->count() }}</div>
+            <div class="stat-icon"><i class="fas fa-list"></i></div>
+        </div>
+    </div>
 
-        <div class="form-card">
+    @if ($puede['gastos'])
+        <form id="form-gasto" method="POST" action="{{ route('gastos.store') }}"
+            class="form-card {{ $errors->gasto->any() ? '' : 'hidden' }}">
+            @csrf
+            <h3><i class="fas fa-file-circle-plus"></i> Registrar gasto</h3>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Categoría</label>
-                    <select>
-                        <option>Todas las categorías</option>
-                        <option>Renta</option>
-                        <option>Salarios</option>
-                        <option>Servicios</option>
-                        <option>Insumos</option>
-                        <option>Mantenimiento</option>
-                    </select>
+                    <label for="concepto">Concepto</label>
+                    <input id="concepto" type="text" name="concepto" value="{{ old('concepto') }}" placeholder="Ej. Renta del local" required>
+                    @error('concepto', 'gasto') <span class="field-error">{{ $message }}</span> @enderror
                 </div>
                 <div class="form-group">
-                    <label>Rango de Fechas</label>
-                    <input type="date" value="2026-05-11">
+                    <label for="monto">Monto</label>
+                    <input id="monto" type="number" step="0.01" min="0.01" name="monto" value="{{ old('monto') }}" placeholder="0.00" required>
+                    @error('monto', 'gasto') <span class="field-error">{{ $message }}</span> @enderror
+                </div>
+                <div class="form-group">
+                    <label for="fecha">Fecha</label>
+                    <input id="fecha" type="date" name="fecha" value="{{ old('fecha', today()->toDateString()) }}" max="{{ today()->toDateString() }}" required>
+                    @error('fecha', 'gasto') <span class="field-error">{{ $message }}</span> @enderror
                 </div>
             </div>
-        </div>
-
-        <div class="table-card">
-            <div class="table-header">
-                <h3>Registro de Gastos</h3>
+            <div class="form-actions">
+                <button type="button" class="btn btn-light" data-toggle-target="form-gasto">Cancelar</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar gasto</button>
             </div>
-            <table>
+        </form>
+    @endif
+
+    <div class="table-card">
+        <div class="table-header">
+            <h3>Registro de gastos</h3>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="search" placeholder="Buscar gasto…" data-filter-table="tabla-gastos">
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table class="data-table" id="tabla-gastos">
                 <thead>
                     <tr>
                         <th>Concepto</th>
-                        <th>Categoría</th>
                         <th>Monto</th>
                         <th>Fecha</th>
-                        <th>Comprobante</th>
-                        <th>Estado</th>
+                        <th>Registrado por</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>Renta Local</td>
-                        <td>Renta</td>
-                        <td style="color:#c62828; font-weight:600;">-$800.00</td>
-                        <td>01/05/2026</td>
-                        <td><i class="fas fa-file-pdf" style="color:#c62828;"></i></td>
-                        <td><span class="status-badge status-active">Pagado</span></td>
-                    </tr>
-                    <tr>
-                        <td>Servicio de Electricidad</td>
-                        <td>Servicios</td>
-                        <td style="color:#c62828; font-weight:600;">-$150.00</td>
-                        <td>05/05/2026</td>
-                        <td><i class="fas fa-file-pdf" style="color:#c62828;"></i></td>
-                        <td><span class="status-badge status-active">Pagado</span></td>
-                    </tr>
-                    <tr>
-                        <td>Limpieza y Mantenimiento</td>
-                        <td>Mantenimiento</td>
-                        <td style="color:#c62828; font-weight:600;">-$90.00</td>
-                        <td>08/05/2026</td>
-                        <td><i class="fas fa-receipt" style="color:#666;"></i></td>
-                        <td><span class="status-badge status-active">Pagado</span></td>
-                    </tr>
-                    <tr>
-                        <td>Suministros de Oficina</td>
-                        <td>Insumos</td>
-                        <td style="color:#c62828; font-weight:600;">-$50.00</td>
-                        <td>10/05/2026</td>
-                        <td><i class="fas fa-receipt" style="color:#666;"></i></td>
-                        <td><span class="status-badge status-pending">Pendiente</span></td>
-                    </tr>
+                    @forelse ($gastos as $gasto)
+                        <tr>
+                            <td>{{ $gasto->concepto }}</td>
+                            <td class="money-out">-{{ $dinero($gasto->monto) }}</td>
+                            <td>{{ \Illuminate\Support\Carbon::parse($gasto->fecha)->format('d/m/Y') }}</td>
+                            <td>{{ $gasto->registrado_por ?? '—' }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="empty-state">
+                                <i class="fas fa-file-invoice"></i>
+                                No hay gastos registrados
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
     </div>
+</section>
 
-    <div id="page-catalogo" class="page-content hidden">
-        <div class="page-header">
-            <h2><i class="fas fa-box-open" style="color:var(--primary-red); margin-right:10px;"></i>Catálogo</h2>
-            <button class="btn-primary"><i class="fas fa-plus"></i> Nuevo Producto</button>
+{{-- ================= CATÁLOGO ================= --}}
+<section id="page-catalogo" class="{{ $pagina('catalogo') }}">
+    <div class="page-header">
+        <div>
+            <h2><span class="icon"><i class="fas fa-box-open"></i></span> Catálogo</h2>
+            <p>Productos e inventario disponible.</p>
         </div>
-
-        <div class="form-card">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Buscar Producto</label>
-                    <div class="search-box">
-                        <i class="fas fa-search" style="color:#888;"></i>
-                        <input type="text" placeholder="Buscar por nombre...">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Categoría</label>
-                    <select>
-                        <option>Todas las categorías</option>
-                        <option>Suplementos</option>
-                        <option>Accesorios</option>
-                        <option>Ropa</option>
-                        <option>Equipamiento</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <div class="catalog-grid">
-            <div class="catalog-card">
-                <div class="catalog-image"><i class="fas fa-prescription-bottle-alt"></i></div>
-                <div class="catalog-body">
-                    <h3 class="catalog-title">Proteína Whey 2kg</h3>
-                    <p class="catalog-price">$850.00</p>
-                    <p class="catalog-stock"><i class="fas fa-box" style="margin-right:5px;"></i>Stock: 15 unidades</p>
-                </div>
-            </div>
-            <div class="catalog-card">
-                <div class="catalog-image"><i class="fas fa-dumbbell"></i></div>
-                <div class="catalog-body">
-                    <h3 class="catalog-title">Guantes de Entrenamiento</h3>
-                    <p class="catalog-price">$250.00</p>
-                    <p class="catalog-stock"><i class="fas fa-box" style="margin-right:5px;"></i>Stock: 30 unidades</p>
-                </div>
-            </div>
-            <div class="catalog-card">
-                <div class="catalog-image"><i class="fas fa-tshirt"></i></div>
-                <div class="catalog-body">
-                    <h3 class="catalog-title">Playera Gym Pro</h3>
-                    <p class="catalog-price">$180.00</p>
-                    <p class="catalog-stock"><i class="fas fa-box" style="margin-right:5px;"></i>Stock: 50 unidades</p>
-                </div>
-            </div>
-            <div class="catalog-card">
-                <div class="catalog-image"><i class="fas fa-flask"></i></div>
-                <div class="catalog-body">
-                    <h3 class="catalog-title">Creatina Monohidratada</h3>
-                    <p class="catalog-price">$320.00</p>
-                    <p class="catalog-stock"><i class="fas fa-box" style="margin-right:5px;"></i>Stock: 20 unidades</p>
-                </div>
-            </div>
-            <div class="catalog-card">
-                <div class="catalog-image"><i class="fas fa-bottle-water"></i></div>
-                <div class="catalog-body">
-                    <h3 class="catalog-title">Shaker Premium</h3>
-                    <p class="catalog-price">$120.00</p>
-                    <p class="catalog-stock"><i class="fas fa-box" style="margin-right:5px;"></i>Stock: 45 unidades</p>
-                </div>
-            </div>
-            <div class="catalog-card">
-                <div class="catalog-image"><i class="fas fa-heartbeat"></i></div>
-                <div class="catalog-body">
-                    <h3 class="catalog-title">Pre-entreno Extreme</h3>
-                    <p class="catalog-price">$450.00</p>
-                    <p class="catalog-stock"><i class="fas fa-box" style="margin-right:5px;"></i>Stock: 12 unidades</p>
-                </div>
-            </div>
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="search" placeholder="Buscar producto…" data-filter-cards="catalog-grid">
         </div>
     </div>
 
-    <div id="page-entrenamiento" class="page-content hidden">
-        <div class="page-header">
-            <h2><i class="fas fa-dumbbell" style="color:var(--primary-red); margin-right:10px;"></i>Entrenamiento</h2>
-            <button class="btn-primary"><i class="fas fa-plus"></i> Nueva Clase</button>
-        </div>
-
-        <div class="stats-grid" style="margin-bottom:1.5rem;">
-            <div class="stat-card cyan">
-                <div class="stat-title">Clases Activas</div>
-                <div class="stat-value">12</div>
-                <div class="stat-icon icon-cyan"><i class="fas fa-calendar-alt"></i></div>
-            </div>
-            <div class="stat-card green">
-                <div class="stat-title">Instructores</div>
-                <div class="stat-value">5</div>
-                <div class="stat-icon icon-green"><i class="fas fa-user-tie"></i></div>
-            </div>
-            <div class="stat-card purple">
-                <div class="stat-title">Inscritos Hoy</div>
-                <div class="stat-value">45</div>
-                <div class="stat-icon icon-purple"><i class="fas fa-users"></i></div>
-            </div>
-            <div class="stat-card orange">
-                <div class="stat-title">Capacidad</div>
-                <div class="stat-value">75%</div>
-                <div class="stat-icon icon-orange"><i class="fas fa-chart-pie"></i></div>
-            </div>
-        </div>
-
-        <div class="form-card">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Semana</label>
-                    <input type="date" value="2026-05-11">
-                </div>
-                <div class="form-group">
-                    <label>Instructor</label>
-                    <select>
-                        <option>Todos los instructores</option>
-                        <option>Carlos Ruiz</option>
-                        <option>María López</option>
-                        <option>Roberto Gómez</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <h3 style="color:var(--text-dark); margin-bottom:1rem; font-size:1.1rem;">Horario Semanal</h3>
-        <div class="schedule-grid">
-            <div class="schedule-day">
-                <div class="schedule-day-name">Lunes</div>
-                <div class="schedule-class highlight">06:00 - Yoga</div>
-                <div class="schedule-class">08:00 - Spinning</div>
-                <div class="schedule-class">17:00 - Crossfit</div>
-                <div class="schedule-class">19:00 - Zumba</div>
-            </div>
-            <div class="schedule-day">
-                <div class="schedule-day-name">Martes</div>
-                <div class="schedule-class">07:00 - Funcional</div>
-                <div class="schedule-class highlight">09:00 - Pilates</div>
-                <div class="schedule-class">18:00 - Boxeo</div>
-            </div>
-            <div class="schedule-day">
-                <div class="schedule-day-name">Miércoles</div>
-                <div class="schedule-class">06:00 - Yoga</div>
-                <div class="schedule-class">08:00 - Spinning</div>
-                <div class="schedule-class highlight">17:00 - Crossfit</div>
-            </div>
-            <div class="schedule-day">
-                <div class="schedule-day-name">Jueves</div>
-                <div class="schedule-class highlight">07:00 - Funcional</div>
-                <div class="schedule-class">09:00 - Pilates</div>
-                <div class="schedule-class">19:00 - Zumba</div>
-            </div>
-            <div class="schedule-day">
-                <div class="schedule-day-name">Viernes</div>
-                <div class="schedule-class">06:00 - Yoga</div>
-                <div class="schedule-class">08:00 - Spinning</div>
-                <div class="schedule-class highlight">17:00 - Crossfit</div>
-            </div>
-            <div class="schedule-day">
-                <div class="schedule-day-name">Sábado</div>
-                <div class="schedule-class highlight">09:00 - Full Body</div>
-                <div class="schedule-class">11:00 - Zumba</div>
-            </div>
-            <div class="schedule-day">
-                <div class="schedule-day-name">Domingo</div>
-                <div class="schedule-class">10:00 - Yoga</div>
-            </div>
-        </div>
-
+    @if ($productos->isEmpty())
         <div class="table-card">
-            <div class="table-header">
-                <h3>Lista de Instructores</h3>
+            <p class="empty-state" style="margin:0;">
+                <i class="fas fa-box-open"></i>
+                Aún no hay productos en el catálogo
+            </p>
+        </div>
+    @else
+        <div class="catalog-grid" id="catalog-grid">
+            @foreach ($productos as $producto)
+                <div class="catalog-card" data-search="{{ \Illuminate\Support\Str::lower($producto->nombre.' '.$producto->tipo) }}">
+                    <div class="catalog-image"><i class="fas fa-dumbbell"></i></div>
+                    <div class="catalog-body">
+                        <div class="catalog-type">{{ $producto->tipo ?? 'Sin categoría' }}</div>
+                        <h3 class="catalog-title">{{ $producto->nombre }}</h3>
+                        <p class="catalog-price">{{ $dinero($producto->precio) }}</p>
+                        <p class="catalog-stock">
+                            <i class="fas fa-box" style="margin-right:5px;"></i>
+                            Stock: {{ (int) $producto->stock }} {{ (int) $producto->stock === 1 ? 'unidad' : 'unidades' }}
+                            @if ((int) $producto->stock <= 5)
+                                <span class="status-badge status-pending" style="margin-left:4px;">Bajo</span>
+                            @endif
+                        </p>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+</section>
+
+{{-- ================= ENTRENAMIENTO (DEMO) ================= --}}
+<section id="page-entrenamiento" class="{{ $pagina('entrenamiento') }}">
+    <div class="page-header">
+        <div>
+            <h2><span class="icon"><i class="fas fa-dumbbell"></i></span> Entrenamiento</h2>
+            <p>Horario semanal de clases e instructores.</p>
+        </div>
+        <span class="demo-tag"><i class="fas fa-flask"></i> Datos de ejemplo</span>
+    </div>
+
+    @php
+        $horario = [
+            'Lunes' => [['06:00', 'Yoga', true], ['08:00', 'Spinning'], ['17:00', 'Crossfit'], ['19:00', 'Zumba']],
+            'Martes' => [['07:00', 'Funcional'], ['09:00', 'Pilates', true], ['18:00', 'Boxeo']],
+            'Miércoles' => [['06:00', 'Yoga'], ['08:00', 'Spinning'], ['17:00', 'Crossfit', true]],
+            'Jueves' => [['07:00', 'Funcional', true], ['09:00', 'Pilates'], ['19:00', 'Zumba']],
+            'Viernes' => [['06:00', 'Yoga'], ['08:00', 'Spinning'], ['17:00', 'Crossfit', true]],
+            'Sábado' => [['09:00', 'Full Body', true], ['11:00', 'Zumba']],
+            'Domingo' => [['10:00', 'Yoga']],
+        ];
+    @endphp
+
+    <div class="schedule-grid">
+        @foreach ($horario as $dia => $clases)
+            <div class="schedule-day">
+                <div class="schedule-day-name">{{ $dia }}</div>
+                @foreach ($clases as $clase)
+                    <div class="schedule-class {{ ($clase[2] ?? false) ? 'highlight' : '' }}">{{ $clase[0] }} · {{ $clase[1] }}</div>
+                @endforeach
             </div>
-            <table>
+        @endforeach
+    </div>
+
+    <div class="table-card">
+        <div class="table-header">
+            <h3>Instructores</h3>
+        </div>
+        <div class="table-scroll">
+            <table class="data-table">
                 <thead>
                     <tr>
                         <th>Instructor</th>
                         <th>Especialidad</th>
-                        <th>Clases Asignadas</th>
-                        <th>Teléfono</th>
+                        <th>Clases asignadas</th>
                         <th>Estado</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>Carlos Ruiz</td>
-                        <td>Crossfit & Funcional</td>
-                        <td>15</td>
-                        <td>55-1234-5678</td>
-                        <td><span class="status-badge status-active">Activo</span></td>
-                    </tr>
-                    <tr>
-                        <td>María López</td>
-                        <td>Yoga & Pilates</td>
-                        <td>12</td>
-                        <td>55-2345-6789</td>
-                        <td><span class="status-badge status-active">Activo</span></td>
-                    </tr>
-                    <tr>
-                        <td>Roberto Gómez</td>
-                        <td>Spinning & Boxeo</td>
-                        <td>10</td>
-                        <td>55-3456-7890</td>
-                        <td><span class="status-badge status-active">Activo</span></td>
-                    </tr>
+                    @foreach ([['Carlos Ruiz', 'Crossfit & Funcional', 15], ['María López', 'Yoga & Pilates', 12], ['Roberto Gómez', 'Spinning & Boxeo', 10]] as [$nombre, $especialidad, $clases])
+                        <tr>
+                            <td>{{ $nombre }}</td>
+                            <td>{{ $especialidad }}</td>
+                            <td>{{ $clases }}</td>
+                            <td><span class="status-badge status-active">Activo</span></td>
+                        </tr>
+                    @endforeach
                 </tbody>
             </table>
         </div>
     </div>
+</section>
 
-    <div id="page-marketing" class="page-content hidden">
+{{-- ================= MARKETING (DEMO) ================= --}}
+<section id="page-marketing" class="{{ $pagina('marketing') }}">
+    <div class="page-header">
+        <div>
+            <h2><span class="icon"><i class="fas fa-bullhorn"></i></span> Marketing</h2>
+            <p>Campañas activas y captación de clientes.</p>
+        </div>
+        <span class="demo-tag"><i class="fas fa-flask"></i> Datos de ejemplo</span>
+    </div>
+
+    <div class="campaign-grid">
+        @foreach ([
+            ['Promoción Verano', '30/06', 89, 18, '$4,500'],
+            ['Descuento Referidos', '31/05', 45, 8, '$2,100'],
+            ['Plan VIP 2x1', '15/06', 22, 2, '$900'],
+        ] as [$titulo, $vigencia, $leads, $conversiones, $ingresos])
+            <div class="campaign-card">
+                <div class="campaign-header">
+                    <div>
+                        <h3 class="campaign-title">{{ $titulo }}</h3>
+                        <p>Válida hasta: {{ $vigencia }}</p>
+                    </div>
+                    <span class="status-badge status-active">Activa</span>
+                </div>
+                <div class="campaign-metrics">
+                    <div class="campaign-metric">
+                        <div class="campaign-metric-value">{{ $leads }}</div>
+                        <div class="campaign-metric-label">Leads</div>
+                    </div>
+                    <div class="campaign-metric">
+                        <div class="campaign-metric-value">{{ $conversiones }}</div>
+                        <div class="campaign-metric-label">Conversiones</div>
+                    </div>
+                    <div class="campaign-metric">
+                        <div class="campaign-metric-value">{{ $ingresos }}</div>
+                        <div class="campaign-metric-label">Ingresos</div>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+</section>
+
+{{-- ================= USUARIOS (SUPER ADMIN) ================= --}}
+@if ($puede['usuarios'])
+    <section id="page-usuarios" class="{{ $pagina('usuarios') }}">
         <div class="page-header">
-            <h2><i class="fas fa-bullhorn" style="color:var(--primary-red); margin-right:10px;"></i>Marketing</h2>
-            <button class="btn-primary"><i class="fas fa-plus"></i> Nueva Campaña</button>
+            <div>
+                <h2><span class="icon"><i class="fas fa-users-gear"></i></span> Usuarios y roles</h2>
+                <p>Crea cuentas para tu personal y asigna sus permisos.</p>
+            </div>
+            <button type="button" class="btn btn-primary" data-toggle-target="form-usuario">
+                <i class="fas fa-user-plus"></i> Nuevo usuario
+            </button>
         </div>
 
-        <div class="stats-grid" style="margin-bottom:1.5rem;">
-            <div class="stat-card green">
-                <div class="stat-title">Campañas Activas</div>
-                <div class="stat-value">3</div>
-                <div class="stat-icon icon-green"><i class="fas fa-bullhorn"></i></div>
-            </div>
-            <div class="stat-card cyan">
-                <div class="stat-title">Leads Generados</div>
-                <div class="stat-value">156</div>
-                <div class="stat-icon icon-cyan"><i class="fas fa-user-plus"></i></div>
-            </div>
-            <div class="stat-card purple">
-                <div class="stat-title">Conversiones</div>
-                <div class="stat-value">28</div>
-                <div class="stat-icon icon-purple"><i class="fas fa-check-circle"></i></div>
-            </div>
-            <div class="stat-card orange">
-                <div class="stat-title">ROI</div>
-                <div class="stat-value">320%</div>
-                <div class="stat-icon icon-orange"><i class="fas fa-chart-line"></i></div>
-            </div>
+        <div class="stats-grid">
+            @foreach ($roles->whereIn('nombre', ['super_admin', 'admin', 'recepcionista', 'cliente']) as $rol)
+                <div class="stat-card {{ ['super_admin' => 'purple', 'admin' => 'red', 'recepcionista' => 'blue', 'cliente' => 'green'][$rol->nombre] }}">
+                    <div class="stat-title">{{ $rol->etiqueta }}</div>
+                    <div class="stat-value">{{ $usuarios->where('role_id', $rol->id)->count() }}</div>
+                    <div class="stat-icon"><i class="fas fa-user-shield"></i></div>
+                </div>
+            @endforeach
         </div>
 
-        <h3 style="color:var(--text-dark); margin-bottom:1rem; font-size:1.1rem;">Campañas Actuales</h3>
+        @php $creando = $errors->usuario->any() && ! old('_usuario_id'); @endphp
+        <form id="form-usuario" method="POST" action="{{ route('admin.usuarios.store') }}"
+            class="form-card {{ $creando ? '' : 'hidden' }}">
+            @csrf
+            <h3><i class="fas fa-user-plus"></i> Nuevo usuario</h3>
+            <div class="form-grid cols-4">
+                <div class="form-group">
+                    <label for="nu-name">Nombre</label>
+                    <input id="nu-name" type="text" name="name" value="{{ $creando ? old('name') : '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="nu-email">Correo</label>
+                    <input id="nu-email" type="email" name="email" value="{{ $creando ? old('email') : '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="nu-password">Contraseña</label>
+                    <input id="nu-password" type="password" name="password" autocomplete="new-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="nu-password2">Confirmar contraseña</label>
+                    <input id="nu-password2" type="password" name="password_confirmation" autocomplete="new-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="nu-role">Rol</label>
+                    <select id="nu-role" name="role_id" required>
+                        @foreach ($roles as $rol)
+                            <option value="{{ $rol->id }}" @selected($creando ? old('role_id') == $rol->id : $rol->nombre === 'recepcionista')>{{ $rol->etiqueta }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            @if ($creando)
+                <div class="alert alert-error" style="margin:1rem 0 0;">
+                    <i class="fas fa-circle-exclamation"></i>
+                    <ul>
+                        @foreach ($errors->usuario->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            <div class="form-actions">
+                <button type="button" class="btn btn-light" data-toggle-target="form-usuario">Cancelar</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Crear usuario</button>
+            </div>
+        </form>
 
-        <div class="campaign-card">
-            <div class="campaign-header">
-                <div>
-                    <h3 class="campaign-title">Promoción Verano 2026</h3>
-                    <p style="margin:0.3rem 0 0 0; color:var(--text-gray); font-size:0.9rem;">Válida hasta: 30/06/2026</p>
-                </div>
-                <span class="status-badge status-active">Activa</span>
-            </div>
-            <div class="campaign-metrics">
-                <div class="campaign-metric">
-                    <div class="campaign-metric-value">89</div>
-                    <div class="campaign-metric-label">Leads</div>
-                </div>
-                <div class="campaign-metric">
-                    <div class="campaign-metric-value">18</div>
-                    <div class="campaign-metric-label">Conversiones</div>
-                </div>
-                <div class="campaign-metric">
-                    <div class="campaign-metric-value">$4,500</div>
-                    <div class="campaign-metric-label">Ingresos</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="campaign-card">
-            <div class="campaign-header">
-                <div>
-                    <h3 class="campaign-title">Descuento Referidos</h3>
-                    <p style="margin:0.3rem 0 0 0; color:var(--text-gray); font-size:0.9rem;">Válida hasta: 31/05/2026</p>
-                </div>
-                <span class="status-badge status-active">Activa</span>
-            </div>
-            <div class="campaign-metrics">
-                <div class="campaign-metric">
-                    <div class="campaign-metric-value">45</div>
-                    <div class="campaign-metric-label">Leads</div>
-                </div>
-                <div class="campaign-metric">
-                    <div class="campaign-metric-value">8</div>
-                    <div class="campaign-metric-label">Conversiones</div>
-                </div>
-                <div class="campaign-metric">
-                    <div class="campaign-metric-value">$2,100</div>
-                    <div class="campaign-metric-label">Ingresos</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="campaign-card">
-            <div class="campaign-header">
-                <div>
-                    <h3 class="campaign-title">Plan VIP - 2x1</h3>
-                    <p style="margin:0.3rem 0 0 0; color:var(--text-gray); font-size:0.9rem;">Válida hasta: 15/06/2026</p>
-                </div>
-                <span class="status-badge status-active">Activa</span>
-            </div>
-            <div class="campaign-metrics">
-                <div class="campaign-metric">
-                    <div class="campaign-metric-value">22</div>
-                    <div class="campaign-metric-label">Leads</div>
-                </div>
-                <div class="campaign-metric">
-                    <div class="campaign-metric-value">2</div>
-                    <div class="campaign-metric-label">Conversiones</div>
-                </div>
-                <div class="campaign-metric">
-                    <div class="campaign-metric-value">$900</div>
-                    <div class="campaign-metric-label">Ingresos</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="table-card" style="margin-top:1.5rem;">
+        <div class="table-card">
             <div class="table-header">
-                <h3>Base de Datos de Leads</h3>
-                <span style="color:var(--text-gray); font-size:0.9rem;">Total: 156 contactos</span>
+                <h3>Usuarios del sistema <span class="count">({{ $usuarios->count() }})</span></h3>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="search" placeholder="Buscar usuario…" data-filter-table="tabla-usuarios">
+                </div>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Email</th>
-                        <th>Teléfono</th>
-                        <th>Origen</th>
-                        <th>Fecha</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Juan Pérez</td>
-                        <td>juan@email.com</td>
-                        <td>55-1111-2222</td>
-                        <td>Facebook</td>
-                        <td>10/05/2026</td>
-                        <td><span class="status-badge status-active">Caliente</span></td>
-                    </tr>
-                    <tr>
-                        <td>Ana García</td>
-                        <td>ana@email.com</td>
-                        <td>55-2222-3333</td>
-                        <td>Instagram</td>
-                        <td>09/05/2026</td>
-                        <td><span class="status-badge status-pending">Tibio</span></td>
-                    </tr>
-                    <tr>
-                        <td>Pedro Sánchez</td>
-                        <td>pedro@email.com</td>
-                        <td>55-3333-4444</td>
-                        <td>Referido</td>
-                        <td>08/05/2026</td>
-                        <td><span class="status-badge status-active">Cliente</span></td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="table-scroll">
+                <table class="data-table" id="tabla-usuarios">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th>Registrado</th>
+                            <th style="text-align:right;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($usuarios as $u)
+                            @php $editando = $errors->usuario->any() && (int) old('_usuario_id') === $u->id; @endphp
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="user-avatar">{{ strtoupper(mb_substr($u->name, 0, 1)) }}</div>
+                                        <div>
+                                            {{ $u->name }} @if ($u->is($usuario)) <span class="status-badge status-info">Tú</span> @endif
+                                            <small>{{ $u->email }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge {{ $u->isSuperAdmin() ? 'status-dark' : ($u->isStaff() ? 'status-info' : 'status-active') }}">
+                                        {{ $u->role?->etiqueta ?? 'Sin rol' }}
+                                    </span>
+                                </td>
+                                <td>{{ $u->created_at?->format('d/m/Y') }}</td>
+                                <td>
+                                    <div class="row-actions">
+                                        <button type="button" class="btn btn-light btn-sm btn-icon" title="Editar"
+                                            data-toggle-target="editar-{{ $u->id }}">
+                                            <i class="fas fa-pen"></i>
+                                        </button>
+                                        @unless ($u->is($usuario))
+                                            <form method="POST" action="{{ route('admin.usuarios.destroy', $u) }}"
+                                                data-confirm="¿Eliminar a {{ $u->name }}? Esta acción no se puede deshacer.">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        @endunless
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr id="editar-{{ $u->id }}" class="edit-row {{ $editando ? '' : 'hidden' }}">
+                                <td colspan="4">
+                                    <form method="POST" action="{{ route('admin.usuarios.update', $u) }}">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="hidden" name="_usuario_id" value="{{ $u->id }}">
+                                        <div class="form-grid cols-4">
+                                            <div class="form-group">
+                                                <label>Nombre</label>
+                                                <input type="text" name="name" value="{{ $editando ? old('name') : $u->name }}" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Correo</label>
+                                                <input type="email" name="email" value="{{ $editando ? old('email') : $u->email }}" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Rol</label>
+                                                <select name="role_id" required>
+                                                    @foreach ($roles as $rol)
+                                                        <option value="{{ $rol->id }}" @selected(($editando ? old('role_id') : $u->role_id) == $rol->id)>{{ $rol->etiqueta }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Nueva contraseña <small style="font-weight:400;">(opcional)</small></label>
+                                                <input type="password" name="password" autocomplete="new-password">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Confirmar contraseña</label>
+                                                <input type="password" name="password_confirmation" autocomplete="new-password">
+                                            </div>
+                                        </div>
+                                        @if ($editando)
+                                            <div class="alert alert-error" style="margin:1rem 0 0;">
+                                                <i class="fas fa-circle-exclamation"></i>
+                                                <ul>
+                                                    @foreach ($errors->usuario->all() as $error)
+                                                        <li>{{ $error }}</li>
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                        @endif
+                                        <div class="form-actions">
+                                            <button type="button" class="btn btn-light btn-sm" data-toggle-target="editar-{{ $u->id }}">Cancelar</button>
+                                            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Guardar cambios</button>
+                                        </div>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
-    <form method="POST" action="{{ route('configuracion.store') }}">
-        @csrf
+    </section>
+@endif
 
-        <div id="page-config" class="page-content hidden">
+{{-- ================= CONFIGURACIÓN ================= --}}
+@if ($puede['config'])
+    <section id="page-config" class="{{ $pagina('config') }}">
+        <form method="POST" action="{{ route('configuracion.store') }}" enctype="multipart/form-data">
+            @csrf
 
-            <!-- HEADER -->
             <div class="page-header">
-                <h2>
-                    <i class="fas fa-cog" style="color:var(--primary-red); margin-right:10px;"></i>
-                    Configuración del Sistema
-                </h2>
-
-                <button type="submit"
-                    style="
-        background: linear-gradient(135deg, #ff4d4f, #ff7a7a);
-        color: white;
-        border: none;
-        padding: 10px 18px;
-        border-radius: 12px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        box-shadow: 0 8px 20px rgba(255, 77, 79, 0.25);
-        cursor: pointer;
-        transition: 0.3s;
-    "
-                    onmouseover="this.style.transform='scale(1.05)'"
-                    onmouseout="this.style.transform='scale(1)'">
-                    <i class="fas fa-save"></i> Guardar Cambios
+                <div>
+                    <h2><span class="icon"><i class="fas fa-gear"></i></span> Configuración del sistema</h2>
+                    <p>Identidad, contacto y horarios que se muestran en el sitio público.</p>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Guardar cambios
                 </button>
             </div>
 
-            <!-- GRID PRINCIPAL -->
+            @if ($errors->default->any())
+                <div class="alert alert-error">
+                    <i class="fas fa-circle-exclamation"></i>
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <div class="config-grid">
 
-                <!-- INFORMACIÓN GENERAL -->
                 <div class="config-card">
-                    <h3><i class="fas fa-sliders-h"></i> Información General</h3>
+                    <h3><i class="fas fa-sliders"></i> Información general</h3>
 
                     <div class="form-group">
-                        <label>Nombre del Gimnasio</label>
-                        <input type="text" name="nombre_gym"
-                            value="{{ $config->nombre_gym ?? '' }}"
-                            placeholder="GYM IMPULSO">
+                        <label for="nombre_gym">Nombre del gimnasio</label>
+                        <input id="nombre_gym" type="text" name="nombre_gym" required
+                            value="{{ old('nombre_gym', $config->nombre_gym) }}" placeholder="GYM IMPULSO">
                     </div>
 
                     <div class="form-group">
-                        <label>Correo del sistema</label>
-                        <input type="email" name="email"
-                            value="{{ $config->email ?? '' }}"
-                            placeholder="admin@gym.com">
+                        <label for="slogan">Slogan</label>
+                        <input id="slogan" type="text" name="slogan"
+                            value="{{ old('slogan', $config->slogan) }}" placeholder="Tu mejor versión empieza aquí">
                     </div>
 
                     <div class="form-group">
-                        <label>Teléfono</label>
-                        <input type="text" name="telefono"
-                            value="{{ $config->telefono ?? '' }}"
-                            placeholder="999 999 999">
+                        <label for="email">Correo de contacto</label>
+                        <input id="email" type="email" name="email"
+                            value="{{ old('email', $config->email) }}" placeholder="info@gym.com">
                     </div>
 
                     <div class="form-group">
-                        <label>Dirección</label>
-                        <input type="text" name="direccion"
-                            value="{{ $config->direccion ?? '' }}"
-                            placeholder="Av. Principal 123">
+                        <label for="telefono">Teléfono</label>
+                        <input id="telefono" type="text" name="telefono"
+                            value="{{ old('telefono', $config->telefono) }}" placeholder="999 999 999">
                     </div>
 
-                    <!-- 🕒 HORARIO PROFESIONAL -->
                     <div class="form-group">
-                        <label><i class="fas fa-clock"></i> Horario del Gimnasio</label>
-
-                        <div class="grid" style="display:grid; gap:10px;">
-
-                            <input type="text" name="horario_lunes"
-                                value="{{ $config->horario_lunes ?? '' }}"
-                                placeholder="Lunes -> 6:00 AM - 10:00 PM">
-
-                            <input type="text" name="horario_martes"
-                                value="{{ $config->horario_martes ?? '' }}"
-                                placeholder="Martes">
-
-                            <input type="text" name="horario_miercoles"
-                                value="{{ $config->horario_miercoles ?? '' }}"
-                                placeholder="Miércoles">
-
-                            <input type="text" name="horario_jueves"
-                                value="{{ $config->horario_jueves ?? '' }}"
-                                placeholder="Jueves">
-
-                            <input type="text" name="horario_viernes"
-                                value="{{ $config->horario_viernes ?? '' }}"
-                                placeholder="Viernes">
-
-                            <input type="text" name="horario_sabado"
-                                value="{{ $config->horario_sabado ?? '' }}"
-                                placeholder="Sábado">
-
-                            <input type="text" name="horario_domingo"
-                                value="{{ $config->horario_domingo ?? '' }}"
-                                placeholder="Domingo">
-
-                        </div>
+                        <label for="direccion">Dirección</label>
+                        <input id="direccion" type="text" name="direccion"
+                            value="{{ old('direccion', $config->direccion) }}" placeholder="Av. Principal 123">
                     </div>
-
                 </div>
 
-                <!-- BRANDING -->
+                <div class="config-card">
+                    <h3><i class="fas fa-clock"></i> Horario de atención</h3>
+
+                    <div class="horario-grid">
+                        @foreach (\App\Models\Configuracion::DIAS as $clave => $dia)
+                            <span>{{ $dia }}</span>
+                            <div class="form-group" style="margin:0;">
+                                <input type="text" name="horario_{{ $clave }}"
+                                    value="{{ old('horario_'.$clave, $config->{'horario_'.$clave}) }}"
+                                    placeholder="6:00 AM - 10:00 PM / Cerrado">
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
                 <div class="config-card">
                     <h3><i class="fas fa-image"></i> Branding</h3>
 
-                    <div class="form-group">
-                        <label>Logo del sistema</label>
-                        <input type="file" name="logo">
-                    </div>
-
                     <div class="preview-box">
-                        <img src="{{ asset('img/logo.png') }}" alt="Logo preview">
+                        <img src="{{ $config->logo_url }}" alt="Logo actual">
+                        <div style="font-size:.85rem; color:var(--text-gray);">Logo actual<br><small>PNG, JPG, WEBP o SVG · máx. 2 MB</small></div>
                     </div>
 
                     <div class="form-group">
-                        <label>Favicon</label>
-                        <input type="file" name="favicon">
+                        <label for="logo">Cambiar logo</label>
+                        <input id="logo" type="file" name="logo" accept="image/*">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="favicon">Favicon <small style="font-weight:400;">(PNG, ICO o SVG)</small></label>
+                        <input id="favicon" type="file" name="favicon" accept=".png,.ico,.svg">
                     </div>
                 </div>
 
-                <!-- COLORES -->
                 <div class="config-card">
-                    <h3><i class="fas fa-palette"></i> Personalización de Colores</h3>
+                    <h3><i class="fas fa-palette"></i> Colores</h3>
 
-                    <div class="form-group">
-                        <label>Color principal</label>
-                        <input type="color" name="color_primario" value="#ff4d4f">
-                    </div>
+                    @foreach (['color_primario' => 'Color principal', 'color_sidebar' => 'Color del menú lateral', 'color_secundario' => 'Color secundario'] as $campo => $etiqueta)
+                        <div class="form-group">
+                            <div class="color-row">
+                                <label for="{{ $campo }}">{{ $etiqueta }}</label>
+                                <input id="{{ $campo }}" type="color" name="{{ $campo }}"
+                                    value="{{ old($campo, $config->{$campo}) }}">
+                            </div>
+                        </div>
+                    @endforeach
 
-                    <div class="form-group">
-                        <label>Color del sidebar</label>
-                        <input type="color" name="color_sidebar" value="#111827">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Color secundario</label>
-                        <input type="color" name="color_secundario" value="#ffffff">
-                    </div>
-
-                    <div class="color-preview">
-                        <div class="color-box primary"></div>
-                        <div class="color-box secondary"></div>
-                        <div class="color-box sidebar"></div>
-                    </div>
+                    <p style="font-size:.8rem; color:var(--text-soft); margin:0;">Los colores se aplican al panel al guardar.</p>
                 </div>
 
-                <!-- SEGURIDAD -->
-                <div class="config-card">
-                    <h3><i class="fas fa-lock"></i> Seguridad</h3>
-
-                    <div class="form-group">
-                        <label>Tiempo de sesión (minutos)</label>
-                        <input type="number" name="session_time" value="60">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Verificación en login</label>
-                        <select name="login_verification">
-                            <option value="0">Desactivado</option>
-                            <option value="1">Activado</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Intentos de acceso</label>
-                        <input type="number" name="login_attempts" value="5">
-                    </div>
-                </div>
-
-                <!-- SISTEMA -->
                 <div class="config-card full-width">
-                    <h3><i class="fas fa-cogs"></i> Configuración del Sistema</h3>
+                    <h3><i class="fas fa-share-nodes"></i> Redes sociales</h3>
 
-                    <div class="system-options">
-
-                        <label>
-                            <input type="checkbox" name="maintenance_mode">
-                            Modo mantenimiento
-                        </label>
-
-                        <label>
-                            <input type="checkbox" name="logs_enabled">
-                            Registro de logs activo
-                        </label>
-
-                        <label>
-                            <input type="checkbox" name="notifications">
-                            Notificaciones del sistema
-                        </label>
-
-                        <label>
-                            <input type="checkbox" name="dark_mode">
-                            Tema oscuro automático
-                        </label>
-
+                    <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                        @foreach (['facebook' => 'fa-facebook', 'instagram' => 'fa-instagram', 'tiktok' => 'fa-tiktok'] as $red => $icono)
+                            <div class="form-group">
+                                <label for="{{ $red }}"><i class="fab {{ $icono }}"></i> {{ ucfirst($red) }}</label>
+                                <input id="{{ $red }}" type="url" name="{{ $red }}"
+                                    value="{{ old($red, $config->{$red}) }}" placeholder="https://{{ $red }}.com/tugym">
+                            </div>
+                        @endforeach
                     </div>
                 </div>
 
             </div>
-        </div>
-    </form>
-</main>
+        </form>
+    </section>
+@endif

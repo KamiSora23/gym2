@@ -8,7 +8,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>GYM IMPULSO - Iniciar Sesión</title>
+    <title>{{ $config->nombre_gym }} - Iniciar sesión</title>
+    <link rel="icon" href="{{ $config->favicon_url }}">
 
     <style>
         body {
@@ -32,8 +33,9 @@
 
                 <div class="text-center mb-4">
                     <a href="{{ url('/') }}" class="text-decoration-none">
+                        <img src="{{ $config->logo_url }}" alt="Logo" class="mb-2" style="width:64px;height:64px;object-fit:contain;">
                         <h4 class="fw-bold text-dark">
-                            <span class="text-primary">GYM</span> IMPULSO
+                            <span class="text-primary">{{ $config->nombrePartido()[0] }}</span> {{ $config->nombrePartido()[1] }}
                         </h4>
                     </a>
 
@@ -44,8 +46,14 @@
 
                 <!-- STATUS -->
                 @if (session('status'))
-                    <div class="alert alert-success">
+                    <div class="alert alert-success small">
                         {{ session('status') }}
+                    </div>
+                @endif
+
+                @if (session('error'))
+                    <div class="alert alert-danger small">
+                        {{ session('error') }}
                     </div>
                 @endif
 

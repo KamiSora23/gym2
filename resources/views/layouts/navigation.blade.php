@@ -1,136 +1,84 @@
-<nav class="bg-white border-b border-gray-200 shadow-sm">
-    <div class="px-6 lg:px-10">
-        <div class="flex justify-between items-center h-20">
+@php
+    $usuario = Auth::user();
+    $enPanel = request()->routeIs('dashboard');
+@endphp
 
-            <!-- IZQUIERDA -->
-            <div class="flex items-center gap-5">
+<nav class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="px-4 lg:px-8">
+        <div class="flex justify-between items-center h-16">
 
-                <!-- LOGO -->
-                <!-- LOGO -->
-                <a href="
-@if(Auth::check() && Auth::user()->role->nombre == 'cliente')
-    {{ url('/') }}
-@else
-    {{ route('dashboard') }}
-@endif
-" class="flex items-center gap-3">
+            <div class="flex items-center gap-3">
+                @if ($enPanel)
+                    <button type="button" id="sidebarToggle"
+                        class="lg:hidden w-10 h-10 rounded-xl text-slate-600 hover:bg-slate-100 transition"
+                        aria-label="Abrir menú">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                @endif
 
-                    <img src="{{ asset('img/logo.png') }}"
-                        alt="Logo Gym"
-                        class="w-14 h-14 object-contain">
+                <a href="{{ $usuario->homeRoute() }}" class="flex items-center gap-3">
+                    <img src="{{ $config->logo_url }}" alt="Logo" class="w-10 h-10 object-contain rounded-lg">
 
-                    <div>
-                        <h1 class="text-xl font-bold text-gray-800 leading-none">
+                    <div class="leading-tight">
+                        <span class="block text-base font-extrabold tracking-tight text-slate-900">
                             {{ $config->nombre_gym }}
-                        </h1>
-
-                        <p class="text-sm text-gray-400">
-                            Sistema Administrativo
-                        </p>
+                        </span>
+                        <span class="block text-xs text-slate-400">
+                            {{ $usuario->isStaff() ? 'Sistema administrativo' : 'Área de clientes' }}
+                        </span>
                     </div>
                 </a>
-
             </div>
 
-            <!-- CENTRO -->
-            <div class="hidden md:flex items-center">
+            <div class="flex items-center gap-2 sm:gap-4">
+                <a href="{{ url('/') }}" target="_blank"
+                    class="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 px-3 py-2 rounded-xl hover:bg-slate-100 transition">
+                    <i class="fas fa-arrow-up-right-from-square text-xs"></i> Ver sitio
+                </a>
 
-                <!-- BUSCADOR -->
-                <div class="relative">
+                @if ($usuario->isStaff() && ! $enPanel)
+                    <a href="{{ route('dashboard') }}"
+                        class="hidden sm:inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 px-3 py-2 rounded-xl hover:bg-slate-100 transition">
+                        <i class="fas fa-gauge text-xs"></i> Panel
+                    </a>
+                @endif
 
-                    <input
-                        type="text"
-                        placeholder="Buscar..."
-                        class="w-80 bg-gray-100 border-none rounded-2xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-red-400">
-
-                    <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-
-                </div>
-
-            </div>
-
-
-            <!-- DERECHA -->
-            <div class="flex items-center gap-6">
-
-                <!-- NOTIFICACIONES -->
-                <button class="relative">
-                    <i class="fas fa-bell text-xl text-gray-500"></i>
-
-                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full px-1">
-                        3
-                    </span>
-                </button>
-
-                <!-- PERFIL -->
-                <x-dropdown align="right" width="48">
-
+                <x-dropdown align="right" width="w-56">
                     <x-slot name="trigger">
+                        <button class="flex items-center gap-3 hover:bg-slate-100 pl-1 pr-3 py-1 rounded-2xl transition">
+                            <span class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold"
+                                style="background: var(--primary-color)">
+                                {{ strtoupper(mb_substr($usuario->name, 0, 1)) }}
+                            </span>
 
-                        <button class="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-2xl transition">
+                            <span class="hidden md:block text-left leading-tight">
+                                <span class="block text-sm font-semibold text-slate-800">{{ $usuario->name }}</span>
+                                <span class="block text-xs text-slate-400">{{ $usuario->role?->etiqueta }}</span>
+                            </span>
 
-                            <!-- AVATAR -->
-                            <div class="w-11 h-11 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg">
-                                {{ strtoupper(substr(Auth::user()->name,0,1)) }}
-                            </div>
-
-                            <!-- INFO -->
-                            <div class="hidden md:block text-left">
-                                <div class="text-sm font-semibold text-gray-800">
-                                    {{ Auth::user()->name }}
-                                </div>
-
-                                <div class="text-xs text-gray-400 break-all leading-4 max-w-[180px]">
-                                    {{ Auth::user()->email }}
-                                </div>
-                            </div>
-
-                            <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
-
+                            <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
                         </button>
-
                     </x-slot>
 
-                    <!-- DROPDOWN -->
                     <x-slot name="content">
-
-                        <div class="px-4 py-3 border-b">
-                            <p class="font-semibold text-gray-800">
-                                {{ Auth::user()->name }}
-                            </p>
-
-                            <p class="text-xs text-gray-400 break-all leading-4 max-w-[180px]">
-                                {{ Auth::user()->email }}
-                            </p>
+                        <div class="px-4 py-3 border-b border-slate-100">
+                            <p class="font-semibold text-slate-800 truncate">{{ $usuario->name }}</p>
+                            <p class="text-xs text-slate-400 truncate">{{ $usuario->email }}</p>
                         </div>
 
-                        <!-- PERFIL -->
                         <x-dropdown-link :href="route('profile.edit')">
-                            ⚙️ Editar Perfil
+                            <i class="fas fa-user-gear w-5 text-slate-400"></i> Mi perfil
                         </x-dropdown-link>
 
-                        <!-- CONFIG -->
-                        <x-dropdown-link href="#">
-                            🔔 Notificaciones
-                        </x-dropdown-link>
-
-                        <!-- LOGOUT -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-
                             <x-dropdown-link :href="route('logout')"
-                                onclick="event.preventDefault();
-                                this.closest('form').submit();">
-
-                                🚪 Cerrar Sesión
-
+                                onclick="event.preventDefault(); this.closest('form').submit();">
+                                <i class="fas fa-right-from-bracket w-5 text-slate-400"></i> Cerrar sesión
                             </x-dropdown-link>
                         </form>
-
                     </x-slot>
-
                 </x-dropdown>
-
             </div>
 
         </div>
