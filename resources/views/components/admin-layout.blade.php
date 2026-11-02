@@ -1,0 +1,263 @@
+@props([
+    'titulo',
+    'icono' => 'fa-gauge',
+    'subtitulo' => null,
+    'modulo' => null,
+])
+
+@php
+    $usuario = Auth::user();
+    $empresaActual = \App\Support\Tenant::empresa();
+    $sucursales = \App\Support\Tenant::sucursales();
+    $sucursalActual = \App\Support\Tenant::sucursalId();
+    $puede = fn (string $m) => \App\Support\Permisos::puede($usuario, $m);
+
+    $menu = [
+        'Operaciones' => [
+            ['resumen', 'dashboard', 'fa-chart-line', 'Resumen'],
+            ['ventas', 'ventas.index', 'fa-cart-shopping', 'Ventas'],
+            ['asistencias', 'asistencias.index', 'fa-calendar-check', 'Asistencias'],
+            ['gastos', 'gastos.index', 'fa-file-invoice-dollar', 'Gastos'],
+        ],
+        'Gestión' => [
+            ['clientes', 'clientes.index', 'fa-users', 'Clientes'],
+            ['planes', 'planes.index', 'fa-id-card', 'Planes y membresías'],
+            ['catalogo', 'productos.index', 'fa-box-open', 'Catálogo'],
+            ['entrenamiento', 'entrenamiento.index', 'fa-dumbbell', 'Entrenamiento'],
+        ],
+        'Administración' => [
+            ['sucursales', 'sucursales.index', 'fa-store', 'Sucursales'],
+            ['usuarios', 'usuarios.index', 'fa-users-gear', 'Usuarios y roles'],
+            ['configuracion', 'configuracion.index', 'fa-gear', 'Configuración'],
+        ],
+    ];
+@endphp
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <title>{{ $titulo }} · {{ $config->nombre_gym }}</title>
+    <link rel="icon" href="{{ $config->favicon_url }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <style>
+        :root {
+            --primary-color: {{ $config->color_primario ?: '#ff4d4f' }};
+            --sidebar-color: {{ $config->color_sidebar ?: '#111827' }};
+            --secondary-color: {{ $config->color_secundario ?: '#ffffff' }};
+        }
+
+        body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; background: #f5f7fb; color: #1e293b; margin: 0; }
+    </style>
+
+    @include('admin.styles')
+</head>
+
+<body>
+    <header class="topbar">
+        <div style="display:flex; align-items:center; gap:.5rem; min-width:0;">
+            <button type="button" id="sidebarToggle" class="icon-btn lg:hidden" aria-label="Abrir menú">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <a href="{{ route('dashboard') }}" class="topbar-brand">
+                <img src="{{ $config->logo_url }}" alt="Logo">
+                <span style="min-width:0;">
+                    <strong>{{ $empresaActual?->nombre ?? $config->nombre_gym }}</strong>
+                    <small>{{ $usuario->isSuperAdmin() ? 'Panel de plataforma' : 'Sistema administrativo' }}</small>
+                </span>
+            </a>
+        </div>
+
+        <div class="topbar-right">
+            @if ($usuario->isSuperAdmin())
+                <form method="POST" action="{{ route('contexto.empresa') }}" class="context-select" title="Empresa que estás administrando">
+                    @csrf
+                    <span><i class="fas fa-building"></i></span>
+                    <select name="id_empresa" onchange="this.form.submit()">
+                        <option value="">— Plataforma —</option>
+                        @foreach (\App\Models\Empresa::orderBy('nombre')->get(['id_empresa', 'nombre']) as $e)
+                            <option value="{{ $e->id_empresa }}" @selected($empresaActual?->id_empresa === $e->id_empresa)>{{ $e->nombre }}</option>
+                        @endforeach
+                    </select>
+                </form>
+            @endif
+
+            @if ($empresaActual && $usuario->isAdmin() && $sucursales->isNotEmpty())
+                <form method="POST" action="{{ route('contexto.sucursal') }}" class="context-select" title="Sucursal">
+                    @csrf
+                    <span><i class="fas fa-store"></i></span>
+                    <select name="id_sucursal" onchange="this.form.submit()">
+                        <option value="">Todas las sucursales</option>
+                        @foreach ($sucursales as $s)
+                            <option value="{{ $s->id_sucursal }}" @selected($sucursalActual === $s->id_sucursal)>{{ $s->nombre }}</option>
+                        @endforeach
+                    </select>
+                </form>
+            @elseif ($usuario->sucursal)
+                <span class="chip"><i class="fas fa-store"></i> {{ $usuario->sucursal->nombre }}</span>
+            @endif
+
+            <div style="position:relative;" x-data="{ open: false }" @click.outside="open = false">
+                <button type="button" class="user-chip" @click="open = !open">
+                    <span class="avatar">{{ strtoupper(mb_substr($usuario->name, 0, 1)) }}</span>
+                    <span class="who">
+                        <strong>{{ $usuario->name }}</strong>
+                        <small>{{ $usuario->role?->etiqueta }}</small>
+                    </span>
+                    <i class="fas fa-chevron-down" style="font-size:.7rem; color:#94a3b8;"></i>
+                </button>
+                <div class="dropdown-panel" x-show="open" x-transition style="display:none;">
+                    <a href="{{ route('profile.edit') }}"><i class="fas fa-user-gear"></i> Mi perfil</a>
+                    <a href="{{ url('/') }}" target="_blank"><i class="fas fa-arrow-up-right-from-square"></i> Ver sitio público</a>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit"><i class="fas fa-right-from-bracket"></i> Cerrar sesión</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div id="dashboard-view">
+        <aside class="sidebar" id="sidebar">
+            <div class="profile-section">
+                <div class="profile-avatar">{{ strtoupper(mb_substr($usuario->name, 0, 1)) }}</div>
+                <div class="profile-info">
+                    <h4 title="{{ $usuario->name }}">{{ $usuario->name }}</h4>
+                    <p>{{ $usuario->role?->etiqueta }}</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+                @if ($usuario->isSuperAdmin())
+                    <div class="menu-category">Plataforma</div>
+                    <a href="{{ route('empresas.index') }}" class="menu-item {{ $modulo === 'empresas' ? 'active' : '' }}">
+                        <i class="fas fa-building"></i> Empresas
+                    </a>
+                @endif
+
+                @if ($empresaActual)
+                    @foreach ($menu as $categoria => $items)
+                        @php $visibles = array_filter($items, fn ($i) => $puede($i[0])); @endphp
+                        @if ($visibles)
+                            <div class="menu-category">{{ $categoria }}</div>
+                            @foreach ($visibles as [$clave, $ruta, $icono, $texto])
+                                <a href="{{ route($ruta) }}" class="menu-item {{ $modulo === $clave ? 'active' : '' }}">
+                                    <i class="fas {{ $icono }}"></i> {{ $texto }}
+                                </a>
+                            @endforeach
+                        @endif
+                    @endforeach
+                @endif
+            </nav>
+
+            <div class="sidebar-footer">
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="menu-item">
+                        <i class="fas fa-right-from-bracket"></i> Cerrar sesión
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+        <main class="main-content">
+            @foreach (['success' => 'fa-circle-check', 'error' => 'fa-circle-exclamation', 'info' => 'fa-circle-info'] as $tipo => $icono)
+                @if (session($tipo))
+                    <div class="alert alert-{{ $tipo }} flash">
+                        <i class="fas {{ $icono }}"></i> {{ session($tipo) }}
+                        <button type="button" class="alert-close" onclick="this.parentElement.remove()" aria-label="Cerrar"><i class="fas fa-xmark"></i></button>
+                    </div>
+                @endif
+            @endforeach
+
+            <div class="page-header">
+                <div>
+                    <h2><span class="icon"><i class="fas {{ $icono }}"></i></span> {{ $titulo }}</h2>
+                    @if ($subtitulo)
+                        <p>{{ $subtitulo }}</p>
+                    @endif
+                </div>
+                @isset($acciones)
+                    <div style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">{{ $acciones }}</div>
+                @endisset
+            </div>
+
+            {{ $slot }}
+        </main>
+    </div>
+
+    <script>
+        (function () {
+            const body = document.body;
+            document.getElementById('sidebarToggle')?.addEventListener('click', () => body.classList.toggle('sidebar-open'));
+            document.getElementById('sidebarBackdrop')?.addEventListener('click', () => body.classList.remove('sidebar-open'));
+
+            // Botones que muestran/ocultan formularios o filas de edición.
+            document.querySelectorAll('[data-toggle-target]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const objetivo = document.getElementById(btn.dataset.toggleTarget);
+                    if (!objetivo) return;
+                    objetivo.classList.toggle('hidden');
+                    if (!objetivo.classList.contains('hidden')) {
+                        objetivo.querySelector('input:not([type=hidden]):not([disabled]), select, textarea')?.focus();
+                    }
+                });
+            });
+
+            // Confirmación antes de acciones destructivas.
+            document.querySelectorAll('form[data-confirm]').forEach(form => {
+                form.addEventListener('submit', e => {
+                    if (!confirm(form.dataset.confirm)) e.preventDefault();
+                });
+            });
+
+            // Búsqueda en tablas y tarjetas.
+            document.querySelectorAll('[data-filter-table]').forEach(input => {
+                input.addEventListener('input', () => {
+                    const texto = input.value.toLowerCase().trim();
+                    document.querySelectorAll('#' + input.dataset.filterTable + ' tbody tr:not(.edit-row)').forEach(fila => {
+                        if (fila.querySelector('.empty-state')) return;
+                        fila.style.display = fila.textContent.toLowerCase().includes(texto) ? '' : 'none';
+                    });
+                });
+            });
+
+            document.querySelectorAll('[data-filter-cards]').forEach(input => {
+                input.addEventListener('input', () => {
+                    const texto = input.value.toLowerCase().trim();
+                    document.querySelectorAll('#' + input.dataset.filterCards + ' [data-search]').forEach(card => {
+                        card.style.display = card.dataset.search.includes(texto) ? '' : 'none';
+                    });
+                });
+            });
+
+            // Las alertas se ocultan solas.
+            setTimeout(() => {
+                document.querySelectorAll('.alert.flash').forEach(a => {
+                    a.style.transition = 'opacity .4s';
+                    a.style.opacity = '0';
+                    setTimeout(() => a.remove(), 400);
+                });
+            }, 6000);
+        })();
+    </script>
+
+    {{ $scripts ?? '' }}
+</body>
+
+</html>

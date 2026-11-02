@@ -3,12 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Configuracion;
+use App\Support\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 
+/**
+ * Identidad, contacto y horarios de la empresa actual.
+ */
 class ConfiguracionController extends Controller
 {
+    public function index(): View
+    {
+        return view('admin.configuracion');
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $hexColor = ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'];
@@ -36,7 +46,8 @@ class ConfiguracionController extends Controller
             'favicon' => ['nullable', 'file', 'mimes:png,ico,svg', 'max:512'],
         ]);
 
-        $config = Configuracion::query()->first() ?? new Configuracion(Configuracion::VALORES_POR_DEFECTO);
+        $empresaId = Tenant::empresaId();
+        $config = Configuracion::firstOrNew(['id_empresa' => $empresaId], Configuracion::VALORES_POR_DEFECTO);
 
         foreach (['logo', 'favicon'] as $archivo) {
             unset($datos[$archivo]);
@@ -46,7 +57,7 @@ class ConfiguracionController extends Controller
                     Storage::disk('public')->delete($config->{$archivo});
                 }
 
-                $datos[$archivo] = $request->file($archivo)->store('branding', 'public');
+                $datos[$archivo] = $request->file($archivo)->store("branding/{$empresaId}", 'public');
             }
         }
 
@@ -57,7 +68,6 @@ class ConfiguracionController extends Controller
 
         $config->fill($datos)->save();
 
-        return redirect()->route('dashboard', ['seccion' => 'config'])
-            ->with('success', 'Configuración actualizada correctamente.');
+        return redirect()->route('configuracion.index')->with('success', 'Configuración actualizada correctamente.');
     }
 }

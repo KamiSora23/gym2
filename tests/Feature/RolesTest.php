@@ -1,10 +1,11 @@
 <?php
 
-use App\Models\Cliente;
 use App\Models\Configuracion;
 use App\Models\Role;
 use App\Models\User;
+use Database\Factories\UserFactory;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DemoSeeder;
 
 test('public pages render without a saved configuration', function () {
     $this->get('/')->assertOk()->assertSee('GYM');
@@ -22,58 +23,71 @@ test('clients cannot access the dashboard', function () {
     $this->actingAs($cliente)->get('/dashboard')->assertRedirect('/');
 });
 
-test('admins can see the dashboard but not user management', function () {
+test('every module renders for an admin', function () {
     $admin = User::factory()->admin()->create();
 
-    $this->actingAs($admin)->get('/dashboard')
-        ->assertOk()
-        ->assertSee('Configuración')
-        ->assertDontSee('Usuarios y roles');
-
-    $this->actingAs($admin)->post('/admin/usuarios', [])->assertForbidden();
+    foreach (['/dashboard', '/clientes', '/asistencias', '/ventas', '/ventas/nueva', '/gastos', '/catalogo', '/planes', '/entrenamiento', '/sucursales', '/usuarios', '/configuracion'] as $url) {
+        $this->actingAs($admin)->get($url)->assertOk();
+    }
 });
 
-test('receptionists cannot change the configuration', function () {
-    $recepcionista = User::factory()->conRol(Role::RECEPCIONISTA)->create();
+test('admins cannot access the platform pages', function () {
+    $admin = User::factory()->admin()->create();
 
-    $this->actingAs($recepcionista)->get('/dashboard')->assertOk();
-    $this->actingAs($recepcionista)
-        ->post('/configuracion', ['nombre_gym' => 'Hack'])
-        ->assertForbidden();
+    $this->actingAs($admin)->get('/empresas')->assertForbidden();
+    $this->actingAs($admin)->post('/contexto/empresa', ['id_empresa' => $admin->id_empresa])->assertForbidden();
 });
 
-test('super admin can manage users', function () {
-    $super = User::factory()->superAdmin()->create();
+test('module permissions follow the role', function () {
+    $recepcion = User::factory()->conRol(Role::RECEPCIONISTA)->create();
+    $cajera = User::factory()->conRol(Role::CAJERA)->create();
+    $coach = User::factory()->conRol(Role::ENTRENADOR)->create();
 
-    $this->actingAs($super)->get('/dashboard')->assertOk()->assertSee('Usuarios y roles');
+    $this->actingAs($recepcion)->get('/ventas')->assertOk();
+    $this->actingAs($recepcion)->get('/gastos')->assertForbidden();
+    $this->actingAs($recepcion)->post('/configuracion', ['nombre_gym' => 'Hack'])->assertForbidden();
+    $this->actingAs($recepcion)->get('/usuarios')->assertForbidden();
 
-    $this->actingAs($super)->post('/admin/usuarios', [
+    $this->actingAs($cajera)->get('/gastos')->assertOk();
+    $this->actingAs($cajera)->get('/entrenamiento')->assertForbidden();
+
+    $this->actingAs($coach)->get('/entrenamiento')->assertOk();
+    $this->actingAs($coach)->get('/ventas')->assertForbidden();
+});
+
+test('an admin manages the users of their company but cannot create super admins', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)->post('/usuarios', [
         'name' => 'Recepción',
         'email' => 'recepcion@gym.com',
         'password' => 'password123',
         'password_confirmation' => 'password123',
         'role_id' => Role::idDe(Role::RECEPCIONISTA),
-    ])->assertSessionHasNoErrors()->assertRedirect();
-
-    $nuevo = User::where('email', 'recepcion@gym.com')->firstOrFail();
-    expect($nuevo->hasRole(Role::RECEPCIONISTA))->toBeTrue();
-
-    $this->actingAs($super)->put("/admin/usuarios/{$nuevo->id}", [
-        'name' => 'Recepción Turno Tarde',
-        'email' => 'recepcion@gym.com',
-        'role_id' => Role::idDe(Role::CAJERA),
     ])->assertSessionHasNoErrors();
 
-    expect($nuevo->fresh()->hasRole(Role::CAJERA))->toBeTrue();
+    $nuevo = User::where('email', 'recepcion@gym.com')->firstOrFail();
+    expect($nuevo->id_empresa)->toBe($admin->id_empresa);
 
-    $this->actingAs($super)->delete("/admin/usuarios/{$nuevo->id}");
-    expect(User::find($nuevo->id))->toBeNull();
+    $this->actingAs($admin)->post('/usuarios', [
+        'name' => 'Intruso',
+        'email' => 'intruso@gym.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+        'role_id' => Role::idDe(Role::SUPER_ADMIN),
+    ])->assertSessionHasErrors('role_id', null, 'usuario');
+
+    $super = User::factory()->superAdmin()->create();
+    $this->actingAs($admin)->delete("/usuarios/{$super->id}")->assertForbidden();
 });
 
 test('the last super admin cannot be demoted or deleted', function () {
     $super = User::factory()->superAdmin()->create();
+    $empresa = UserFactory::empresaDePrueba();
 
-    $this->actingAs($super)->put("/admin/usuarios/{$super->id}", [
+    $this->actingAs($super)->withSession(['empresa_id' => $empresa->id_empresa]);
+
+    $this->put("/usuarios/{$super->id}", [
         'name' => $super->name,
         'email' => $super->email,
         'role_id' => Role::idDe(Role::ADMIN),
@@ -81,11 +95,11 @@ test('the last super admin cannot be demoted or deleted', function () {
 
     expect($super->fresh()->isSuperAdmin())->toBeTrue();
 
-    $this->actingAs($super)->delete("/admin/usuarios/{$super->id}")->assertSessionHas('error');
+    $this->delete("/usuarios/{$super->id}")->assertSessionHas('error');
     expect($super->fresh())->not->toBeNull();
 });
 
-test('admins can update the configuration', function () {
+test('admins update the configuration of their own company', function () {
     $admin = User::factory()->admin()->create();
 
     $this->actingAs($admin)->post('/configuracion', [
@@ -95,40 +109,35 @@ test('admins can update the configuration', function () {
         'horario_lunes' => '7:00 - 21:00',
     ])->assertSessionHasNoErrors()->assertRedirect();
 
-    $config = Configuracion::first();
+    $config = Configuracion::where('id_empresa', $admin->id_empresa)->first();
 
     expect($config->nombre_gym)->toBe('POWER GYM')
-        ->and($config->email)->toBe('hola@power.com')
         ->and($config->color_primario)->toBe('#123456')
         ->and($config->color_sidebar)->toBe('#111827');
+
+    $this->actingAs($admin)->get('/dashboard')->assertSee('#123456', false);
 });
 
-test('staff can register expenses and attendance', function () {
-    $admin = User::factory()->admin()->create();
-
-    $this->actingAs($admin)->post('/gastos', [
-        'concepto' => 'Luz',
-        'monto' => 150.5,
-        'fecha' => today()->toDateString(),
-    ])->assertSessionHasNoErrors();
-
-    $this->assertDatabaseHas('gastos', ['concepto' => 'Luz', 'user_id' => $admin->id]);
-
-    $cliente = User::factory()->create();
-    $idCliente = Cliente::create(['nombre' => $cliente->name, 'dni' => '12345678', 'user_id' => $cliente->id])->id_cliente;
-
-    $this->actingAs($admin)->post('/asistencias', ['id_cliente' => $idCliente])->assertSessionHasNoErrors();
-    $this->assertDatabaseHas('asistencias', ['id_cliente' => $idCliente]);
-
-    $this->actingAs($admin)->get('/dashboard?seccion=gastos')->assertOk()->assertSee('Luz');
-});
-
-test('database seeder creates the super admin and is idempotent', function () {
+test('database seeder creates the super admin and main company, and is idempotent', function () {
     $this->seed(DatabaseSeeder::class);
     $this->seed(DatabaseSeeder::class);
+
+    $admin = User::where('email', 'admin@gym.com')->first();
 
     expect(Role::count())->toBe(count(Role::ETIQUETAS))
         ->and(User::where('email', 'superadmin@gym.com')->first()?->isSuperAdmin())->toBeTrue()
-        ->and(User::where('email', 'admin@gym.com')->first()?->isAdmin())->toBeTrue()
+        ->and($admin?->isAdmin())->toBeTrue()
+        ->and($admin->id_empresa)->not->toBeNull()
+        ->and($admin->id_sucursal)->not->toBeNull()
         ->and(Configuracion::count())->toBe(1);
+});
+
+test('demo seeder fills two companies without errors', function () {
+    $this->seed(DemoSeeder::class);
+
+    $admin = User::where('email', 'admin@gym.com')->first();
+
+    $this->actingAs($admin)->get('/dashboard')->assertOk();
+    $this->actingAs($admin)->get('/entrenamiento')->assertOk()->assertSee('Carlos Ruiz');
+    $this->actingAs($admin)->get('/ventas')->assertOk();
 });

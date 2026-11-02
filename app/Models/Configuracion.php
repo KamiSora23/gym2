@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Support\Tenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
+/**
+ * Identidad visual y datos de contacto de cada empresa.
+ */
 class Configuracion extends Model
 {
     public const DIAS = [
@@ -27,6 +31,7 @@ class Configuracion extends Model
     ];
 
     protected $fillable = [
+        'id_empresa',
         'nombre_gym',
         'slogan',
         'logo',
@@ -50,23 +55,53 @@ class Configuracion extends Model
         'horario_domingo',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(fn () => app()->forgetInstance('gym.configuraciones'));
+        static::deleted(fn () => app()->forgetInstance('gym.configuraciones'));
+    }
+
     /**
-     * Devuelve la configuración guardada o una con valores por defecto.
+     * Configuración de la empresa del contexto actual; para visitantes, la de la empresa principal.
      * Nunca falla aunque la base de datos aún no esté migrada.
      */
     public static function actual(): self
     {
-        return once(function () {
-            try {
-                if (Schema::hasTable((new static)->getTable())) {
-                    return static::query()->first() ?? new static(self::VALORES_POR_DEFECTO);
-                }
-            } catch (Throwable) {
-                // Base de datos no disponible: se usan los valores por defecto.
+        // Caché por petición (vive en el contenedor de la aplicación).
+        if (! app()->bound('gym.configuraciones')) {
+            app()->instance('gym.configuraciones', new \ArrayObject);
+        }
+
+        $cache = app('gym.configuraciones');
+        $clave = 'empresa:'.(Tenant::empresaId() ?? 'publica');
+
+        if (isset($cache[$clave])) {
+            return $cache[$clave];
+        }
+
+        try {
+            if (! Schema::hasTable('configuracions')) {
+                return new static(self::VALORES_POR_DEFECTO);
             }
 
+            return $cache[$clave] = static::paraEmpresa(Tenant::empresaId() ?? Empresa::principal()?->id_empresa);
+        } catch (Throwable) {
             return new static(self::VALORES_POR_DEFECTO);
-        });
+        }
+    }
+
+    public static function paraEmpresa(?int $empresaId): self
+    {
+        $config = static::query()->when($empresaId, fn ($q) => $q->where('id_empresa', $empresaId))->first()
+            ?? static::query()->whereNull('id_empresa')->first();
+
+        if ($config) {
+            return $config;
+        }
+
+        $nombre = $empresaId ? Empresa::find($empresaId)?->nombre : null;
+
+        return new static(['nombre_gym' => $nombre ?: self::VALORES_POR_DEFECTO['nombre_gym']] + self::VALORES_POR_DEFECTO);
     }
 
     public function getLogoUrlAttribute(): string

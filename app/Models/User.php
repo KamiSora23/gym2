@@ -15,6 +15,8 @@ class User extends Authenticatable
         'email',
         'password',
         'role_id',
+        'id_empresa',
+        'id_sucursal',
     ];
 
     protected $hidden = [
@@ -37,7 +39,22 @@ class User extends Authenticatable
 
     public function cliente()
     {
-        return $this->hasOne(Cliente::class);
+        return $this->hasOne(Cliente::class)->withoutGlobalScopes();
+    }
+
+    public function empresa()
+    {
+        return $this->belongsTo(Empresa::class, 'id_empresa', 'id_empresa');
+    }
+
+    public function sucursal()
+    {
+        return $this->belongsTo(Sucursal::class, 'id_sucursal', 'id_sucursal')->withoutGlobalScopes();
+    }
+
+    public function entrenador()
+    {
+        return $this->hasOne(Entrenador::class, 'user_id')->withoutGlobalScopes();
     }
 
     public function rolNombre(): ?string
@@ -78,6 +95,10 @@ class User extends Authenticatable
      */
     public function homeRoute(): string
     {
+        if ($this->isSuperAdmin()) {
+            return session('empresa_id') ? route('dashboard') : route('empresas.index');
+        }
+
         return $this->isStaff() ? route('dashboard') : url('/');
     }
 }

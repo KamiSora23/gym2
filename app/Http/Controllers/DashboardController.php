@@ -2,119 +2,61 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Role;
-use App\Models\User;
-use Illuminate\Http\Request;
+use App\Models\Asistencia;
+use App\Models\Clase;
+use App\Models\Cliente;
+use App\Models\Gasto;
+use App\Models\Ingreso;
+use App\Models\Membresia;
+use App\Models\Venta;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
+/**
+ * Resumen de la empresa (y sucursal) seleccionada.
+ */
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): View
+    public function __invoke(): View
     {
         $hoy = Carbon::today();
         $inicioSemana = $hoy->copy()->startOfWeek(Carbon::MONDAY);
-        $finSemana = $hoy->copy()->endOfWeek(Carbon::SUNDAY);
+        $rangoSemana = [$inicioSemana->toDateString(), $hoy->copy()->endOfWeek(Carbon::SUNDAY)->toDateString()];
         $inicioMes = $hoy->copy()->startOfMonth();
-        $rangoSemana = [$inicioSemana->toDateString(), $finSemana->toDateString()];
 
-        $ingresosSemana = (float) DB::table('ingresos')->whereBetween('fecha', $rangoSemana)->sum('monto');
-        $gastosSemana = (float) DB::table('gastos')->whereBetween('fecha', $rangoSemana)->sum('monto');
+        $ingresosSemana = (float) Ingreso::deSucursal()->whereBetween('fecha', $rangoSemana)->sum('monto');
+        $gastosSemana = (float) Gasto::deSucursal()->whereBetween('fecha', $rangoSemana)->sum('monto');
 
-        $ventasSemana = DB::table('ventas')->whereBetween('fecha', $rangoSemana);
-        $totalVentasSemana = (float) (clone $ventasSemana)->sum('total');
-        $numVentasSemana = (clone $ventasSemana)->count();
-
-        // Asistencias por día de la semana actual (Lun..Dom).
-        $asistenciasPorDia = DB::table('asistencias')
+        $porDia = Asistencia::deSucursal()
             ->whereBetween('fecha', $rangoSemana)
             ->select('fecha', DB::raw('count(*) as total'))
             ->groupBy('fecha')
-            ->pluck('total', 'fecha');
+            ->get()
+            ->mapWithKeys(fn ($fila) => [Carbon::parse($fila->fecha)->toDateString() => (int) $fila->total]);
 
-        $graficoAsistencias = collect(range(0, 6))->map(function ($i) use ($inicioSemana, $asistenciasPorDia) {
-            $fecha = $inicioSemana->copy()->addDays($i)->toDateString();
+        $graficoAsistencias = collect(range(0, 6))
+            ->map(fn ($i) => $porDia[$inicioSemana->copy()->addDays($i)->toDateString()] ?? 0);
 
-            return (int) ($asistenciasPorDia[$fecha] ?? 0);
-        });
+        $membresias = Membresia::whereHas('cliente');
 
-        $stats = [
-            'clientes_total' => DB::table('clientes')->count(),
-            'clientes_activos' => DB::table('membresias')
-                ->where('estado', 'activo')
-                ->whereDate('fecha_fin', '>=', $hoy)
-                ->distinct()
-                ->count('id_cliente'),
-            'ingresos_semana' => $ingresosSemana,
-            'gastos_semana' => $gastosSemana,
-            'neto_semana' => $ingresosSemana - $gastosSemana,
-            'inscritos_semana' => DB::table('clientes')->where('created_at', '>=', $inicioSemana)->count(),
-            'pagos_pendientes' => DB::table('ventas')->where('estado', 'pendiente')->count(),
-            'asistencias_hoy' => DB::table('asistencias')->whereDate('fecha', $hoy)->count(),
-            'renovaciones_mes' => DB::table('membresias')->where('created_at', '>=', $inicioMes)->count(),
-            'ventas_hoy' => (float) DB::table('ventas')->whereDate('fecha', $hoy)->sum('total'),
-            'ventas_semana' => $totalVentasSemana,
-            'num_ventas_semana' => $numVentasSemana,
-            'ticket_promedio' => $numVentasSemana ? $totalVentasSemana / $numVentasSemana : 0,
-            'gastos_hoy' => (float) DB::table('gastos')->whereDate('fecha', $hoy)->sum('monto'),
-            'gastos_mes' => (float) DB::table('gastos')->where('fecha', '>=', $inicioMes->toDateString())->sum('monto'),
-        ];
-
-        $ventas = DB::table('ventas')
-            ->leftJoin('clientes', 'clientes.id_cliente', '=', 'ventas.id_cliente')
-            ->select('ventas.*', 'clientes.nombre as cliente')
-            ->orderByDesc('ventas.fecha')
-            ->orderByDesc('ventas.id_venta')
-            ->limit(25)
-            ->get();
-
-        $asistencias = DB::table('asistencias')
-            ->join('clientes', 'clientes.id_cliente', '=', 'asistencias.id_cliente')
-            ->select('asistencias.*', 'clientes.nombre as cliente')
-            ->whereDate('asistencias.fecha', $hoy)
-            ->orderByDesc('asistencias.hora_entrada')
-            ->get();
-
-        $gastos = DB::table('gastos')
-            ->leftJoin('users', 'users.id', '=', 'gastos.user_id')
-            ->select('gastos.*', 'users.name as registrado_por')
-            ->orderByDesc('gastos.fecha')
-            ->orderByDesc('gastos.id_gasto')
-            ->limit(25)
-            ->get();
-
-        $productos = DB::table('productos')
-            ->leftJoin('tipo_producto', 'tipo_producto.id_tipo', '=', 'productos.id_tipo')
-            ->leftJoin('inventario', 'inventario.id_producto', '=', 'productos.id_producto')
-            ->select(
-                'productos.id_producto',
-                'productos.nombre',
-                'productos.precio',
-                'tipo_producto.nombre as tipo',
-                DB::raw('coalesce(sum(inventario.cantidad), 0) as stock'),
-            )
-            ->groupBy('productos.id_producto', 'productos.nombre', 'productos.precio', 'tipo_producto.nombre')
-            ->orderBy('productos.nombre')
-            ->get();
-
-        $clientes = DB::table('clientes')->orderBy('nombre')->get(['id_cliente', 'nombre', 'dni']);
-
-        $usuarios = $request->user()->isSuperAdmin()
-            ? User::with('role')->orderBy('name')->get()
-            : collect();
-
-        return view('dashboard', [
-            'stats' => $stats,
+        return view('admin.dashboard', [
+            'stats' => [
+                'clientes_total' => Cliente::count(),
+                'clientes_activos' => (clone $membresias)->where('estado', 'activo')->whereDate('fecha_fin', '>=', $hoy)->distinct()->count('id_cliente'),
+                'ingresos_semana' => $ingresosSemana,
+                'gastos_semana' => $gastosSemana,
+                'neto_semana' => $ingresosSemana - $gastosSemana,
+                'inscritos_semana' => Cliente::where('created_at', '>=', $inicioSemana)->count(),
+                'pagos_pendientes' => Venta::deSucursal()->where('estado', 'pendiente')->count(),
+                'asistencias_hoy' => Asistencia::deSucursal()->whereDate('fecha', $hoy)->count(),
+                'en_gym' => Asistencia::deSucursal()->whereDate('fecha', $hoy)->whereNull('hora_salida')->count(),
+                'membresias_mes' => (clone $membresias)->where('created_at', '>=', $inicioMes)->count(),
+                'por_vencer' => (clone $membresias)->where('estado', 'activo')->whereBetween('fecha_fin', [$hoy->toDateString(), $hoy->copy()->addDays(7)->toDateString()])->count(),
+            ],
             'graficoAsistencias' => $graficoAsistencias,
-            'ventas' => $ventas,
-            'ultimasVentas' => $ventas->take(5),
-            'asistencias' => $asistencias,
-            'gastos' => $gastos,
-            'productos' => $productos,
-            'clientes' => $clientes,
-            'usuarios' => $usuarios,
-            'roles' => Role::orderBy('id')->get(),
+            'ultimasVentas' => Venta::deSucursal()->with('cliente')->where('estado', '!=', 'anulado')->orderByDesc('id_venta')->limit(6)->get(),
+            'clasesHoy' => Clase::deSucursal()->with('entrenador')->withCount('clientes')->where('dia_semana', $hoy->dayOfWeekIso)->orderBy('hora_inicio')->get(),
         ]);
     }
 }

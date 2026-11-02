@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cliente;
+use App\Models\Empresa;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
@@ -39,15 +40,20 @@ class RegisteredUserController extends Controller
         ]);
 
         // El registro público siempre crea clientes, junto con su ficha.
-        $user = DB::transaction(function () use ($request) {
+        // Los clientes que se registran en el sitio público pertenecen a la empresa principal.
+        $empresaId = Empresa::principal()?->id_empresa;
+
+        $user = DB::transaction(function () use ($request, $empresaId) {
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => $request->password,
                 'role_id' => Role::idDe(Role::CLIENTE),
+                'id_empresa' => $empresaId,
             ]);
 
             Cliente::create([
+                'id_empresa' => $empresaId,
                 'nombre' => $user->name,
                 'correo' => $user->email,
                 'dni' => 'TEMP-'.$user->id,
