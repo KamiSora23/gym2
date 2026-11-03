@@ -123,4 +123,5 @@ docker compose restart app
 | Error 502 en Cloudflare | En el túnel la URL debe ser `gym-app:80` y `cloudflared` debe estar en la red `cloudflare_red`. |
 | La página carga sin estilos o con enlaces `http://` | `APP_URL` debe empezar con `https://` y ser el dominio real. Luego `docker compose up -d app`. |
 | Cambié la contraseña de la base en el `.env` y ya no conecta | MySQL solo toma esas variables al crear el volumen. Cámbiala dentro de MySQL o, si la base es nueva y vacía, borra el volumen `gym_mysql`. |
+| `Esperando a MySQL…` y luego `no se pudo conectar` | El registro muestra el motivo. Con `Access denied`, la contraseña del `.env` no coincide con la del volumen: si la instalación es nueva, `docker compose down -v` y vuelve a arrancar. `DB_HOST` debe ser `gym-db` (en `cloudflare_red` hay otros servicios llamados `db`). |
 | Las horas de las asistencias no coinciden | Revisa `APP_TIMEZONE` (por defecto `America/Lima`). |

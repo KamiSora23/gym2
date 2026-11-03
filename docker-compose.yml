@@ -7,7 +7,8 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: db
+      # Nombre único: en cloudflare_red hay otros proyectos cuyo servicio también se llama "db".
+      DB_HOST: gym-db
       DB_PORT: 3306
     # Puerto local opcional (para probar sin Cloudflare). Con el túnel no hace falta abrirlo.
     ports:
