@@ -16,6 +16,10 @@
     </div>
 
     @if ($fecha->isToday())
+        @if ($checkinQr)
+            @include('admin.partials.lector-qr')
+        @endif
+
         <form method="POST" action="{{ route('asistencias.store') }}" class="form-card">
             @csrf
             <h3><i class="fas fa-user-check"></i> Registrar check-in</h3>

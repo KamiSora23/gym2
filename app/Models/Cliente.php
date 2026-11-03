@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\PerteneceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class Cliente extends Model
 {
@@ -21,6 +22,7 @@ class Cliente extends Model
         'telefono',
         'correo',
         'activo',
+        'codigo_acceso',
         'user_id',
         'id_entrenador',
         'id_nutricionista',
@@ -39,6 +41,30 @@ class Cliente extends Model
         return $this->ventas()->exists()
             || $this->membresias()->exists()
             || DB::table('asistencias')->where('id_cliente', $this->id_cliente)->exists();
+    }
+
+    /**
+     * Código del pase QR del socio. Se genera la primera vez que se necesita.
+     */
+    public function codigoAcceso(): string
+    {
+        if (! $this->codigo_acceso) {
+            $this->regenerarCodigoAcceso();
+        }
+
+        return $this->codigo_acceso;
+    }
+
+    /**
+     * Nuevo código (si el socio perdió o compartió su pase): el anterior deja de funcionar.
+     */
+    public function regenerarCodigoAcceso(): void
+    {
+        do {
+            $codigo = 'GYM'.strtoupper(Str::random(13));
+        } while (static::withoutGlobalScopes()->where('codigo_acceso', $codigo)->exists());
+
+        $this->forceFill(['codigo_acceso' => $codigo])->save();
     }
 
     public function user()

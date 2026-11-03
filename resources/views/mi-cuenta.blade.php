@@ -96,6 +96,21 @@
                 @endif
             </div>
 
+            @if ($config->checkin_qr)
+                <div class="cuenta-card mb-4 d-flex flex-wrap align-items-center gap-4" id="mi-pase">
+                    <div style="width:190px; height:190px; background:#fff; padding:8px; border-radius:14px;">{!! \App\Support\CodigoQr::svg($cliente->codigoAcceso(), 174) !!}</div>
+                    <div class="flex-grow-1">
+                        <div class="text-muted small fw-bold text-uppercase">Mi pase de acceso</div>
+                        <h2 class="h5 fw-bold mb-1">Muestra este código en recepción</h2>
+                        <p class="text-muted mb-2">Escanéalo al entrar y al salir. Sube el brillo de tu pantalla si no lo lee.</p>
+                        <code class="fs-6" style="letter-spacing:.08em;">{{ $cliente->codigoAcceso() }}</code>
+                        @unless ($m)
+                            <p class="small text-danger mt-2 mb-0"><i class="bi bi-exclamation-circle"></i> Sin membresía vigente el acceso será rechazado.</p>
+                        @endunless
+                    </div>
+                </div>
+            @endif
+
             <div class="row g-4">
                 <div class="col-lg-4">
                     <div class="cuenta-card">

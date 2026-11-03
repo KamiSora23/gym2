@@ -13,6 +13,7 @@
             'web' => ['fa-globe', 'Sitio web'],
             'contacto' => ['fa-address-book', 'Contacto y horarios'],
             'redes' => ['fa-share-nodes', 'Redes sociales'],
+            'acceso' => ['fa-qrcode', 'Acceso de socios'],
         ];
         $webPrimario = old('web_color_primario', $c->web_color_primario ?: '#ffc107');
         $webOscuro = old('web_color_oscuro', $c->web_color_oscuro ?: '#0f172a');
@@ -194,6 +195,20 @@
                             </div>
                         @endforeach
                     </div>
+                </section>
+
+                <section class="settings-section" id="acceso">
+                    <header>
+                        <span class="icon"><i class="fas fa-qrcode"></i></span>
+                        <div><h3>Acceso de socios</h3><p>Cómo registra recepción la entrada de los socios.</p></div>
+                    </header>
+                    <label class="form-check" style="align-items:flex-start; gap:.75rem;">
+                        <input type="checkbox" name="checkin_qr" value="1" @checked(old('checkin_qr', $c->checkin_qr)) style="margin-top:.25rem;">
+                        <span>
+                            <strong>Check-in con código QR</strong><br>
+                            <span class="muted">Cada socio ve su pase QR en «Mi cuenta» y recepción puede imprimirle un carnet. En Asistencias aparece el lector: usa la cámara del equipo o un lector de códigos USB. Escanear a alguien que ya está dentro registra su salida. La búsqueda por nombre sigue disponible.</span>
+                        </span>
+                    </label>
                 </section>
 
                 <div class="settings-actions">

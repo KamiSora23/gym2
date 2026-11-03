@@ -32,6 +32,7 @@ class Configuracion extends Model
         'web_color_oscuro' => '#0f172a',
         'web_usa_colores_panel' => false,
         'moneda' => 'S/',
+        'checkin_qr' => false,
     ];
 
     /**
@@ -64,6 +65,7 @@ class Configuracion extends Model
         'web_color_oscuro',
         'web_usa_colores_panel',
         'moneda',
+        'checkin_qr',
         'telefono',
         'email',
         'direccion',
@@ -82,7 +84,7 @@ class Configuracion extends Model
 
     protected function casts(): array
     {
-        return ['web_usa_colores_panel' => 'boolean'];
+        return ['web_usa_colores_panel' => 'boolean', 'checkin_qr' => 'boolean'];
     }
 
     protected static function booted(): void

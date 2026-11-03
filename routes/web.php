@@ -89,6 +89,7 @@ Route::middleware('auth')->group(function () {
         Route::middleware(Permisos::middleware('clients.view|clients.view_assigned'))->group(function () {
             Route::resource('clientes', ClienteController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
             Route::patch('/clientes/{cliente}/estado', [ClienteController::class, 'estado'])->name('clientes.estado');
+            Route::patch('/clientes/{cliente}/codigo-acceso', [ClienteController::class, 'regenerarCodigo'])->name('clientes.codigo');
             Route::patch('/membresias/{membresia}/congelar', [ClienteController::class, 'congelar'])->name('membresias.congelar');
             Route::patch('/membresias/{membresia}/reanudar', [ClienteController::class, 'reanudar'])->name('membresias.reanudar');
 
@@ -110,6 +111,7 @@ Route::middleware('auth')->group(function () {
         Route::middleware(Permisos::middleware('attendance.view|attendance.create'))->group(function () {
             Route::get('/asistencias', [AsistenciaController::class, 'index'])->name('asistencias.index');
             Route::post('/asistencias', [AsistenciaController::class, 'store'])->name('asistencias.store');
+            Route::post('/asistencias/qr', [AsistenciaController::class, 'qr'])->middleware('throttle:60,1')->name('asistencias.qr');
             Route::patch('/asistencias/{asistencia}/salida', [AsistenciaController::class, 'salida'])->name('asistencias.salida');
         });
 

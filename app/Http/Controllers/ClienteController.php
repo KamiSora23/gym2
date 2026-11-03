@@ -116,6 +116,20 @@ class ClienteController extends Controller
         return back()->with('success', $cliente->activo ? "{$cliente->nombre} fue reactivado." : "{$cliente->nombre} fue desactivado. Su historial se conserva.");
     }
 
+    /**
+     * Invalida el pase QR del socio (lo perdió o lo compartió) y genera uno nuevo.
+     */
+    public function regenerarCodigo(Request $request, Cliente $cliente): RedirectResponse
+    {
+        Permisos::exigir('clients.edit');
+        Alcance::exigirCliente($request->user(), $cliente);
+
+        $cliente->regenerarCodigoAcceso();
+        Auditoria::registrar('cliente.codigo_acceso', "Generó un nuevo pase QR para {$cliente->nombre}", $cliente);
+
+        return back()->with('success', "Nuevo pase QR generado para {$cliente->nombre}. El anterior ya no funciona.");
+    }
+
     public function destroy(Request $request, Cliente $cliente): RedirectResponse
     {
         Permisos::exigir('clients.delete');

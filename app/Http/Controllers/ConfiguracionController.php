@@ -89,6 +89,7 @@ class ConfiguracionController extends Controller
         }
 
         $datos['web_usa_colores_panel'] = $request->boolean('web_usa_colores_panel');
+        $datos['checkin_qr'] = $request->boolean('checkin_qr');
         $datos['moneda'] = $datos['moneda'] ?? ($config->moneda ?: 'S/');
         $coloresSucursal = $datos['sucursal_colores'] ?? [];
         unset($datos['sucursal_colores'], $datos['quitar_logo']);

@@ -61,6 +61,10 @@
         </div>
     </div>
 
+    @if ($config->checkin_qr)
+        @include('admin.partials.pase-qr')
+    @endif
+
     <div class="grid-2">
         {{-- RUTINA --}}
         <div>

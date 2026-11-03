@@ -42,9 +42,13 @@
         </div>
     @endif
 
+    @if ($config->checkin_qr)
+        @include('admin.partials.lector-qr')
+    @endif
+
     <form method="POST" action="{{ route('asistencias.store') }}" class="form-card">
         @csrf
-        <h3><i class="fas fa-user-check"></i> Check-in rápido</h3>
+        <h3><i class="fas fa-user-check"></i> {{ $config->checkin_qr ? 'Check-in por nombre' : 'Check-in rápido' }}</h3>
         <div style="display:flex; gap:.75rem; flex-wrap:wrap; align-items:end;">
             <div class="form-group" style="flex:1; min-width:240px; margin:0;">
                 <select name="id_cliente" required>
