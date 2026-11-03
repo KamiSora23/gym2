@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Auditoria;
 use App\Models\Cliente;
+use App\Models\Entrenador;
 use App\Models\Permiso;
 use App\Models\Role;
 use App\Models\User;
@@ -17,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
@@ -29,8 +31,10 @@ class UsuarioController extends Controller
 {
     public function index(Request $request): View
     {
-        $usuarios = User::with(['role', 'sucursal'])
+        $usuarios = User::with(['role', 'sucursal', 'entrenador'])
             ->where('id_empresa', Tenant::empresaId())
+            ->where(fn ($q) => $q->whereNull('role_id')->orWhereHas('role', fn ($r) => $r->where('nombre', '!=', Role::CLIENTE)))
+            ->orderByRaw("estado = 'bloqueado'")
             ->orderBy('name')
             ->get();
 
@@ -75,6 +79,8 @@ class UsuarioController extends Controller
                 $this->crearFichaCliente($user);
             }
 
+            $this->vincularPerfilCoach($user);
+
             return $user;
         });
 
@@ -103,6 +109,8 @@ class UsuarioController extends Controller
             if ($usuario->isCliente() && ! $usuario->cliente()->exists()) {
                 $this->crearFichaCliente($usuario);
             }
+
+            $this->vincularPerfilCoach($usuario);
         });
 
         Autorizacion::olvidar();
@@ -124,6 +132,13 @@ class UsuarioController extends Controller
             Auditoria::registrar('usuario.baja', "Dio de baja al usuario {$usuario->name}", $usuario);
 
             return $this->volver("{$usuario->name} tiene historial: se bloqueó su acceso en lugar de eliminarlo.", 'info');
+        }
+
+        // Su perfil de coach se borra si está vacío; si tiene clases o alumnos, queda desactivado.
+        if ($perfil = Entrenador::where('user_id', $usuario->id)->first()) {
+            $perfil->clases()->exists() || $perfil->clientes()->exists()
+                ? $perfil->update(['user_id' => null, 'activo' => false])
+                : $perfil->delete();
         }
 
         $usuario->delete();
@@ -220,7 +235,52 @@ class UsuarioController extends Controller
 
         $datos['id_empresa'] = Tenant::empresaId();
 
+        // Quien no puede trabajar con todas las sedes necesita una sucursal; si hay una sola, se asigna.
+        $rol = Role::with('permisos:id,codigo')->find($datos['role_id']);
+        $multisede = $rol->nombre === Role::ADMIN || $rol->permisos->contains('codigo', 'branches.switch');
+
+        if (! $multisede && blank($datos['id_sucursal'] ?? null)) {
+            $sucursales = Tenant::sucursales();
+
+            if ($sucursales->count() !== 1) {
+                throw ValidationException::withMessages([
+                    'id_sucursal' => "El rol {$rol->etiqueta} trabaja en una sola sede: elige su sucursal.",
+                ])->errorBag('usuario');
+            }
+
+            $datos['id_sucursal'] = $sucursales->first()->id_sucursal;
+        }
+
         return $datos;
+    }
+
+    /**
+     * Un usuario con rol de entrenador necesita su perfil de coach para tener clases, horarios y alumnos.
+     */
+    private function vincularPerfilCoach(User $user): void
+    {
+        $user->loadMissing('role');
+
+        if ($user->role?->nombre !== Role::ENTRENADOR) {
+            return;
+        }
+
+        $perfil = Entrenador::where('user_id', $user->id)->first();
+
+        if ($perfil) {
+            $perfil->update(['id_sucursal' => $user->id_sucursal ?? $perfil->id_sucursal, 'activo' => true]);
+
+            return;
+        }
+
+        Entrenador::create([
+            'id_empresa' => $user->id_empresa,
+            'id_sucursal' => $user->id_sucursal,
+            'user_id' => $user->id,
+            'nombre' => $user->name,
+            'email' => $user->email,
+            'activo' => true,
+        ]);
     }
 
     /**
@@ -231,7 +291,7 @@ class UsuarioController extends Controller
         $mios = $actor->isSuperAdmin() ? null : Autorizacion::efectivos($actor);
 
         return Role::disponiblesPara(Tenant::empresaId())
-            ->where('nombre', '!=', Role::SUPER_ADMIN)
+            ->whereNotIn('nombre', [Role::SUPER_ADMIN, Role::CLIENTE])
             ->with('permisos:id,codigo')
             ->orderByRaw('id_empresa is null desc')
             ->orderBy('id')
@@ -287,10 +347,11 @@ class UsuarioController extends Controller
             || DB::table('caja_sesiones')->where('user_id', $usuario->id)->exists()
             || DB::table('inventario_movimientos')->where('user_id', $usuario->id)->exists()
             || DB::table('gastos')->where('user_id', $usuario->id)->exists()
-            || DB::table('auditoria')->where('user_id', $usuario->id)->exists();
+            || DB::table('auditoria')->where('user_id', $usuario->id)->where('accion', 'not like', 'sesion.%')->exists();
 
         if ($usado) {
             $usuario->update(['estado' => 'bloqueado', 'motivo_bloqueo' => 'Dado de baja (conserva su historial)', 'bloqueado_en' => now()]);
+            Entrenador::where('user_id', $usuario->id)->update(['activo' => false]);
         }
 
         return $usado;

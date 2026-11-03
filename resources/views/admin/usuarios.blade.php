@@ -1,5 +1,5 @@
 <x-admin-layout titulo="Empleados" icono="fa-user-tie" modulo="usuarios"
-    subtitulo="Cuentas del personal de {{ \App\Support\Tenant::empresa()?->nombre }}, su rol, sucursal y estado.">
+    subtitulo="Cuentas del personal, su rol, sucursal y estado. Las cuentas de los socios se gestionan en Clientes.">
 
     <x-slot name="acciones">
         @if (Auth::user()->permite('roles.manage'))
@@ -67,7 +67,7 @@
                 </select>
             </div>
         </div>
-        <p class="muted" style="margin:.75rem 0 0;">El personal que no es administrador trabaja solo en su sucursal.@if ($yo->isSuperAdmin()) Los super administradores se gestionan en <a href="{{ route('plataforma.usuarios.index') }}">Usuarios globales</a>.@endif</p>
+        <p class="muted" style="margin:.75rem 0 0;">El personal que no es administrador ni gerente trabaja solo en su sucursal. Al crear un entrenador se crea también su perfil de coach. @if ($yo->isSuperAdmin()) Los super administradores se gestionan en <a href="{{ route('plataforma.usuarios.index') }}">Usuarios globales</a>.@endif</p>
         @if ($creando)
             @include('admin.partials.errores', ['bag' => 'usuario'])
         @endif
@@ -93,7 +93,7 @@
                         <th>Usuario</th>
                         <th>Rol</th>
                         <th>Sucursal</th>
-                        <th>Registrado</th>
+                        <th>Estado</th>
                         <th class="text-right">Acciones</th>
                     </tr>
                 </thead>
@@ -110,7 +110,6 @@
                                     <div>
                                         <a href="{{ route('usuarios.show', $u) }}" style="color:var(--text-dark); font-weight:600; text-decoration:none;">{{ $u->name }}</a>
                                         @if ($u->is($yo)) <span class="status-badge status-info">Tú</span> @endif
-                                        @if ($u->isBloqueado()) <span class="status-badge status-cancelled"><i class="fas fa-lock"></i> Bloqueado</span> @endif
                                         <small>{{ $u->email }}</small>
                                     </div>
                                 </div>
@@ -121,7 +120,16 @@
                                 </span>
                             </td>
                             <td>{{ $u->isSuperAdmin() ? 'Plataforma' : ($u->sucursal?->nombre ?? 'Todas') }}</td>
-                            <td>{{ $u->created_at?->format('d/m/Y') }}</td>
+                            <td>
+                                @if ($u->isBloqueado())
+                                    <span class="status-badge status-cancelled" title="{{ $u->motivo_bloqueo }}"><i class="fas fa-lock"></i> {{ str_starts_with((string) $u->motivo_bloqueo, 'Dado de baja') ? 'De baja' : 'Bloqueado' }}</span>
+                                @else
+                                    <span class="status-badge status-active">Activo</span>
+                                @endif
+                                @if ($u->rolNombre() === 'entrenador')
+                                    <div class="muted">{{ $u->entrenador ? 'Perfil de coach vinculado' : 'Sin perfil de coach' }}</div>
+                                @endif
+                            </td>
                             <td>
                                 <div class="row-actions">
                                     <a href="{{ route('usuarios.show', $u) }}" class="btn btn-light btn-sm btn-icon" title="Ficha y permisos"><i class="fas fa-key"></i></a>

@@ -140,7 +140,7 @@ class UsuarioGlobalController extends Controller
             || DB::table('caja_sesiones')->where('user_id', $usuario->id)->exists()
             || DB::table('inventario_movimientos')->where('user_id', $usuario->id)->exists()
             || DB::table('gastos')->where('user_id', $usuario->id)->exists()
-            || DB::table('auditoria')->where('user_id', $usuario->id)->exists();
+            || DB::table('auditoria')->where('user_id', $usuario->id)->where('accion', 'not like', 'sesion.%')->exists();
 
         if ($usado) {
             $usuario->update(['estado' => 'bloqueado', 'motivo_bloqueo' => 'Dado de baja (conserva su historial)', 'bloqueado_en' => now()]);
