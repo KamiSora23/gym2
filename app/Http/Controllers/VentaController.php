@@ -69,7 +69,7 @@ class VentaController extends Controller
     {
         return view('admin.ventas.create', [
             'cajaAbierta' => CajaService::sesionAbierta($request->user()),
-            'clientes' => Cliente::with('membresiaActiva.plan')->orderBy('nombre')->get(),
+            'clientes' => Cliente::with('membresiaActiva.plan')->where('activo', true)->orderBy('nombre')->get(),
             'productos' => Producto::with('inventario')->where('activo', true)->orderBy('nombre')->get(),
             'planes' => Plan::where('activo', true)->orderBy('precio')->get(),
             'sucursales' => Tenant::sucursales(),
@@ -83,7 +83,7 @@ class VentaController extends Controller
         $empresaId = Tenant::empresaId();
 
         $datos = $request->validate([
-            'id_cliente' => ['nullable', Rule::exists('clientes', 'id_cliente')->where('id_empresa', $empresaId)],
+            'id_cliente' => ['nullable', Rule::exists('clientes', 'id_cliente')->where('id_empresa', $empresaId)->where('activo', true)],
             'id_plan' => ['nullable', Rule::exists('planes', 'id_plan')->where('id_empresa', $empresaId)->where('activo', true)],
             'metodo_pago' => ['required', Rule::in(array_keys(Venta::METODOS_PAGO))],
             'estado' => ['required', Rule::in(['completado', 'pendiente'])],

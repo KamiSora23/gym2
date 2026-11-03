@@ -32,6 +32,7 @@ class ClienteController extends Controller
                 $texto = '%'.$request->q.'%';
                 $q->where(fn ($w) => $w->where('nombre', 'like', $texto)->orWhere('dni', 'like', $texto)->orWhere('correo', 'like', $texto));
             })
+            ->when($request->input('estado') === 'inactivos', fn ($q) => $q->where('activo', false), fn ($q) => $q->where('activo', true))
             ->orderBy('nombre')
             ->paginate(25)
             ->withQueryString();
@@ -46,7 +47,8 @@ class ClienteController extends Controller
             'entrenadores' => Entrenador::where('activo', true)->orderBy('nombre')->get(),
             'nutricionistas' => $this->nutricionistas(),
             'resumen' => [
-                'total' => Cliente::count(),
+                'total' => Cliente::where('activo', true)->count(),
+                'inactivos' => Cliente::where('activo', false)->count(),
                 'activos' => Cliente::whereHas('membresiaActiva')->count(),
                 'nuevos' => Cliente::where('created_at', '>=', today()->startOfMonth())->count(),
                 'con_coach' => Cliente::whereNotNull('id_entrenador')->count(),
@@ -101,12 +103,29 @@ class ClienteController extends Controller
         return redirect()->route('clientes.index', $request->only('q', 'page'))->with('success', 'Cliente actualizado correctamente.');
     }
 
+    /**
+     * Desactiva o reactiva al cliente. Un cliente inactivo no aparece en caja, asistencias ni clases.
+     */
+    public function estado(Request $request, Cliente $cliente): RedirectResponse
+    {
+        Permisos::exigir('clients.delete');
+
+        $cliente->update(['activo' => ! $cliente->activo]);
+        Auditoria::registrar($cliente->activo ? 'cliente.reactivado' : 'cliente.desactivado', ($cliente->activo ? 'Reactivó' : 'Desactivó')." al cliente {$cliente->nombre}", $cliente);
+
+        return back()->with('success', $cliente->activo ? "{$cliente->nombre} fue reactivado." : "{$cliente->nombre} fue desactivado. Su historial se conserva.");
+    }
+
     public function destroy(Request $request, Cliente $cliente): RedirectResponse
     {
         Permisos::exigir('clients.delete');
 
-        if ($cliente->ventas()->exists()) {
-            return back()->with('error', 'El cliente tiene ventas registradas y no se puede eliminar.');
+        // Con historial (ventas, membresías, asistencias) solo se desactiva.
+        if ($cliente->tieneHistorial()) {
+            $cliente->update(['activo' => false]);
+            Auditoria::registrar('cliente.desactivado', "Desactivó al cliente {$cliente->nombre}", $cliente);
+
+            return back()->with('info', "{$cliente->nombre} tiene historial: se desactivó en lugar de eliminarse.");
         }
 
         $cliente->delete();

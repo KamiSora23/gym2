@@ -28,7 +28,7 @@ class AsistenciaController extends Controller
             'fecha' => Carbon::parse($fecha),
             'asistencias' => $asistencias,
             'enGym' => $asistencias->whereNull('hora_salida')->count(),
-            'clientes' => Cliente::with('membresiaActiva')->orderBy('nombre')->get(['id_cliente', 'nombre', 'dni']),
+            'clientes' => Cliente::with('membresiaActiva')->where('activo', true)->orderBy('nombre')->get(['id_cliente', 'nombre', 'dni']),
             'sucursales' => Tenant::sucursales(),
         ]);
     }
@@ -38,7 +38,7 @@ class AsistenciaController extends Controller
         Permisos::exigir('attendance.create');
 
         $datos = $request->validateWithBag('asistencia', [
-            'id_cliente' => ['required', Rule::exists('clientes', 'id_cliente')->where('id_empresa', Tenant::empresaId())],
+            'id_cliente' => ['required', Rule::exists('clientes', 'id_cliente')->where('id_empresa', Tenant::empresaId())->where('activo', true)],
             'id_sucursal' => ['nullable', 'integer'],
         ]);
 

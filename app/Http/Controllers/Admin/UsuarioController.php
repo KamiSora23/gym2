@@ -120,6 +120,12 @@ class UsuarioController extends Controller
             return $this->volver('No puedes eliminar tu propia cuenta desde aquí.', 'error');
         }
 
+        if ($this->darDeBajaSiTieneHistorial($usuario)) {
+            Auditoria::registrar('usuario.baja', "Dio de baja al usuario {$usuario->name}", $usuario);
+
+            return $this->volver("{$usuario->name} tiene historial: se bloqueó su acceso en lugar de eliminarlo.", 'info');
+        }
+
         $usuario->delete();
         Auditoria::registrar('usuario.eliminado', "Eliminó al usuario {$usuario->name}");
 
@@ -270,5 +276,23 @@ class UsuarioController extends Controller
     private function volver(string $mensaje, string $tipo = 'success'): RedirectResponse
     {
         return redirect()->route('usuarios.index')->with($tipo, $mensaje);
+    }
+
+    /**
+     * Un usuario que ya operó (ventas, caja, inventario, auditoría) no se borra: se da de baja.
+     */
+    private function darDeBajaSiTieneHistorial(User $usuario): bool
+    {
+        $usado = DB::table('ventas')->where('user_id', $usuario->id)->exists()
+            || DB::table('caja_sesiones')->where('user_id', $usuario->id)->exists()
+            || DB::table('inventario_movimientos')->where('user_id', $usuario->id)->exists()
+            || DB::table('gastos')->where('user_id', $usuario->id)->exists()
+            || DB::table('auditoria')->where('user_id', $usuario->id)->exists();
+
+        if ($usado) {
+            $usuario->update(['estado' => 'bloqueado', 'motivo_bloqueo' => 'Dado de baja (conserva su historial)', 'bloqueado_en' => now()]);
+        }
+
+        return $usado;
     }
 }

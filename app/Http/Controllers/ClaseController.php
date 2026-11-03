@@ -50,7 +50,7 @@ class ClaseController extends Controller
             'clases' => $clases,
             'porDia' => $clases->groupBy('dia_semana'),
             'entrenadores' => $entrenadores,
-            'clientes' => Cliente::orderBy('nombre')->get(['id_cliente', 'nombre', 'dni']),
+            'clientes' => Cliente::where('activo', true)->orderBy('nombre')->get(['id_cliente', 'nombre', 'dni']),
             'sucursales' => Tenant::sucursales(),
             'usuariosEntrenador' => User::where('id_empresa', Tenant::empresaId())
                 ->whereHas('role', fn ($q) => $q->where('nombre', Role::ENTRENADOR))

@@ -96,8 +96,8 @@
             <a href="{{ $usuario->homeRoute() }}" class="topbar-brand">
                 <img src="{{ $config->logo_url }}" alt="Logo">
                 <span style="min-width:0;">
-                    <strong>{{ $modoPlataforma ? $config->nombre_gym : ($empresaActual?->nombre ?? $config->nombre_gym) }}</strong>
-                    <small>{{ $modoPlataforma ? 'Plataforma · Super administración' : ($usuario->sucursal?->nombre ?? 'Sistema administrativo') }}</small>
+                    <strong>{{ $config->nombre_gym }}</strong>
+                    <small>{{ $modoPlataforma ? 'Plataforma · Super administración' : (\App\Support\Tenant::sucursal()?->nombre ?? $usuario->sucursal?->nombre ?? 'Sistema administrativo') }}</small>
                 </span>
             </a>
         </div>

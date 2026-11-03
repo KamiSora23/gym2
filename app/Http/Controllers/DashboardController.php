@@ -59,7 +59,7 @@ class DashboardController extends Controller
                 ->where('estado', 'activo')
                 ->whereBetween('fecha_fin', [$hoy->toDateString(), $hoy->copy()->addDays(7)->toDateString()])
                 ->orderBy('fecha_fin')->get(),
-            'clientes' => Cliente::with('membresiaActiva')->orderBy('nombre')->get(['id_cliente', 'nombre', 'dni']),
+            'clientes' => Cliente::with('membresiaActiva')->where('activo', true)->orderBy('nombre')->get(['id_cliente', 'nombre', 'dni']),
             'nuevosHoy' => Cliente::whereDate('created_at', $hoy)->count(),
             'pedidosWeb' => Venta::deSucursal()->with('cliente')->where('origen', 'web')->where('estado', 'pendiente')->orderBy('id_venta')->get(),
         ]);

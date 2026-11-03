@@ -14,7 +14,7 @@ class Producto extends Model
 
     protected $primaryKey = 'id_producto';
 
-    protected $fillable = ['id_empresa', 'id_tipo', 'nombre', 'descripcion', 'precio', 'activo', 'sku', 'precio_compra', 'stock_minimo'];
+    protected $fillable = ['id_empresa', 'id_tipo', 'nombre', 'descripcion', 'imagen', 'precio', 'activo', 'sku', 'precio_compra', 'stock_minimo'];
 
     protected function casts(): array
     {
@@ -24,6 +24,11 @@ class Producto extends Model
             'stock_minimo' => 'integer',
             'activo' => 'boolean',
         ];
+    }
+
+    public function getImagenUrlAttribute(): ?string
+    {
+        return $this->imagen ? asset('storage/'.$this->imagen) : null;
     }
 
     public function tipo()

@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Support\Tenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
@@ -148,12 +147,12 @@ class Configuracion extends Model
 
     public function getLogoUrlAttribute(): string
     {
-        return $this->logo ? Storage::disk('public')->url($this->logo) : asset('img/logo.png');
+        return $this->logo ? asset('storage/'.$this->logo) : asset('img/logo.png');
     }
 
     public function getFaviconUrlAttribute(): string
     {
-        return $this->favicon ? Storage::disk('public')->url($this->favicon) : asset('favicon.ico');
+        return $this->favicon ? asset('storage/'.$this->favicon) : $this->logo_url;
     }
 
     /**

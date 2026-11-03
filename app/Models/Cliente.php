@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\PerteneceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Cliente extends Model
 {
@@ -19,10 +20,26 @@ class Cliente extends Model
         'nombre',
         'telefono',
         'correo',
+        'activo',
         'user_id',
         'id_entrenador',
         'id_nutricionista',
     ];
+
+    protected function casts(): array
+    {
+        return ['activo' => 'boolean'];
+    }
+
+    /**
+     * Un cliente con ventas, membresías o asistencias no se elimina: se desactiva.
+     */
+    public function tieneHistorial(): bool
+    {
+        return $this->ventas()->exists()
+            || $this->membresias()->exists()
+            || DB::table('asistencias')->where('id_cliente', $this->id_cliente)->exists();
+    }
 
     public function user()
     {

@@ -1,7 +1,7 @@
 {{-- Tarjeta de producto del sitio público. Requiere $producto (con stock_total y categoria_slug). --}}
 @php
     $imagenes = ['img/img1.jpg', 'img/img2.jpg', 'img/img3.jpg'];
-    $img = asset($imagenes[$producto->id_producto % 3]);
+    $img = $producto->imagen_url ?? asset($imagenes[$producto->id_producto % 3]);
     $agotado = $producto->stock_total <= 0;
 @endphp
 

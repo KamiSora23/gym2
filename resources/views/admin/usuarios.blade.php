@@ -128,10 +128,10 @@
                                 @if ($editable)
                                         <button type="button" class="btn btn-light btn-sm btn-icon" title="Editar" data-toggle-target="editar-{{ $u->id }}"><i class="fas fa-pen"></i></button>
                                         @unless ($u->is($yo))
-                                            <form method="POST" action="{{ route('usuarios.destroy', $u) }}" data-confirm="¿Eliminar a {{ $u->name }}? Esta acción no se puede deshacer.">
+                                            <form method="POST" action="{{ route('usuarios.destroy', $u) }}" data-confirm="¿Dar de baja a {{ $u->name }}? Si ya registró ventas, caja o movimientos se bloqueará su acceso y se conservará su historial.">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                                <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Dar de baja"><i class="fas fa-user-slash"></i></button>
                                             </form>
                                         @endunless
                                 @endif

@@ -12,6 +12,7 @@ use App\Support\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -48,6 +49,10 @@ class ProductoController extends Controller
         $request->validateWithBag('producto', ['stock_inicial' => ['nullable', 'integer', 'min:0', 'max:100000']]);
         $stock = $request->integer('stock_inicial');
 
+        if ($request->hasFile('imagen')) {
+            $datos['imagen'] = $request->file('imagen')->store('productos/'.Tenant::empresaId(), 'public');
+        }
+
         DB::transaction(function () use ($datos, $stock, $request) {
             $producto = Producto::create($datos + ['activo' => true]);
 
@@ -77,24 +82,34 @@ class ProductoController extends Controller
             Auditoria::registrar('producto.precio', "Cambió el precio de {$producto->nombre} de ".dinero($producto->precio).' a '.dinero($datos['precio']), $producto);
         }
 
+        if ($request->hasFile('imagen') || $request->boolean('quitar_imagen')) {
+            if ($producto->imagen) {
+                Storage::disk('public')->delete($producto->imagen);
+            }
+
+            $datos['imagen'] = $request->hasFile('imagen')
+                ? $request->file('imagen')->store('productos/'.Tenant::empresaId(), 'public')
+                : null;
+        }
+
         $producto->update($datos);
 
         return redirect()->route('productos.index')->with('success', 'Producto actualizado correctamente.');
     }
 
-    public function destroy(Producto $producto): RedirectResponse
+    /**
+     * Activa o desactiva el producto. Los productos no se eliminan: conservan su kardex y sus ventas.
+     */
+    public function estado(Producto $producto): RedirectResponse
     {
         Permisos::exigir('products.create');
 
-        if ($producto->inventario()->where('cantidad', '>', 0)->exists() || DB::table('venta_detalle')->where('id_producto', $producto->id_producto)->exists()) {
-            $producto->update(['activo' => false]);
+        $producto->update(['activo' => ! $producto->activo]);
+        Auditoria::registrar('producto.estado', ($producto->activo ? 'Activó' : 'Desactivó')." el producto {$producto->nombre}", $producto);
 
-            return back()->with('info', 'El producto tiene stock o ventas: se desactivó en lugar de eliminarse.');
-        }
-
-        $producto->delete();
-
-        return back()->with('success', 'Producto eliminado.');
+        return back()->with('success', $producto->activo
+            ? "{$producto->nombre} vuelve a estar a la venta."
+            : "{$producto->nombre} se desactivó: ya no aparece en la tienda ni en caja, pero conserva su historial.");
     }
 
     /**
@@ -181,7 +196,11 @@ class ProductoController extends Controller
             'precio_compra' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'stock_minimo' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'id_tipo' => ['required', Rule::exists('tipo_producto', 'id_tipo')->where('id_empresa', Tenant::empresaId())],
+            'imagen' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'quitar_imagen' => ['nullable', 'boolean'],
         ]);
+
+        unset($datos['imagen'], $datos['quitar_imagen']);
 
         $datos['precio_compra'] ??= $producto->precio_compra ?? 0;
         $datos['stock_minimo'] ??= $producto->stock_minimo ?? 5;

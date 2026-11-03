@@ -86,6 +86,7 @@ Route::middleware('auth')->group(function () {
 
         Route::middleware(Permisos::middleware('clients.view|clients.view_assigned'))->group(function () {
             Route::resource('clientes', ClienteController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
+            Route::patch('/clientes/{cliente}/estado', [ClienteController::class, 'estado'])->name('clientes.estado');
             Route::patch('/membresias/{membresia}/congelar', [ClienteController::class, 'congelar'])->name('membresias.congelar');
             Route::patch('/membresias/{membresia}/reanudar', [ClienteController::class, 'reanudar'])->name('membresias.reanudar');
 
@@ -139,7 +140,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/catalogo', [ProductoController::class, 'index'])->name('productos.index');
             Route::post('/catalogo', [ProductoController::class, 'store'])->name('productos.store');
             Route::put('/catalogo/{producto}', [ProductoController::class, 'update'])->name('productos.update');
-            Route::delete('/catalogo/{producto}', [ProductoController::class, 'destroy'])->name('productos.destroy');
+            Route::patch('/catalogo/{producto}/estado', [ProductoController::class, 'estado'])->name('productos.estado');
             Route::post('/catalogo/{producto}/stock', [ProductoController::class, 'stock'])->name('productos.stock');
             Route::post('/catalogo-categorias', [ProductoController::class, 'categoria'])->name('productos.categoria');
             Route::get('/inventario/movimientos', [ProductoController::class, 'movimientos'])->name('inventario.movimientos');

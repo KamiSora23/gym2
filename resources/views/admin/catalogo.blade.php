@@ -34,7 +34,7 @@
             <div class="form-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Crear categoría</button></div>
         </form>
 
-        <form id="form-producto" method="POST" action="{{ route('productos.store') }}" class="form-card {{ $creando ? '' : 'hidden' }}">
+        <form id="form-producto" method="POST" action="{{ route('productos.store') }}" enctype="multipart/form-data" class="form-card {{ $creando ? '' : 'hidden' }}">
             @csrf
             <h3><i class="fas fa-box"></i> Nuevo producto</h3>
             @if ($categorias->isEmpty())
@@ -64,6 +64,7 @@
                     </div>
                 @endunless
                 <div class="form-group" style="grid-column: span 2;"><label>Descripción</label><input type="text" name="descripcion" value="{{ $creando ? old('descripcion') : '' }}"></div>
+                <div class="form-group" style="grid-column: span 2;"><label>Foto del producto</label><input type="file" name="imagen" accept="image/png,image/jpeg,image/webp"><small class="muted">JPG, PNG o WEBP · máx. 2 MB. Se muestra en la tienda web.</small></div>
             </div>
             @if ($creando)
                 @include('admin.partials.errores', ['bag' => 'producto'])
@@ -87,7 +88,13 @@
                     $editando = $errors->producto->any() && (int) old('_id') === $producto->id_producto;
                 @endphp
                 <div class="catalog-card" data-search="{{ \Illuminate\Support\Str::lower($producto->nombre.' '.$producto->tipo?->nombre) }}" style="{{ $producto->activo ? '' : 'opacity:.6' }}">
-                    <div class="catalog-image"><i class="fas fa-dumbbell"></i></div>
+                    <div class="catalog-image">
+                        @if ($producto->imagen_url)
+                            <img src="{{ $producto->imagen_url }}" alt="{{ $producto->nombre }}" style="width:100%; height:100%; object-fit:cover;">
+                        @else
+                            <i class="fas fa-dumbbell"></i>
+                        @endif
+                    </div>
                     <div class="catalog-body">
                         <div class="catalog-type">{{ $producto->tipo?->nombre ?? 'Sin categoría' }} @unless ($producto->activo) · inactivo @endunless</div>
                         <h3 class="catalog-title">{{ $producto->nombre }}</h3>
@@ -126,13 +133,17 @@
                         @if ($puedeEditar)
                             <div class="company-actions" style="margin-top:.6rem;">
                                 <button type="button" class="btn btn-light btn-sm" data-toggle-target="editar-producto-{{ $producto->id_producto }}"><i class="fas fa-pen"></i> Editar</button>
-                                <form method="POST" action="{{ route('productos.destroy', $producto) }}" data-confirm="¿Eliminar {{ $producto->nombre }}?">
+                                <form method="POST" action="{{ route('productos.estado', $producto) }}" @if ($producto->activo) data-confirm="¿Desactivar {{ $producto->nombre }}? Dejará de venderse, pero conserva su stock e historial." @endif>
                                     @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
+                                    @method('PATCH')
+                                    @if ($producto->activo)
+                                        <button type="submit" class="btn btn-light btn-sm"><i class="fas fa-eye-slash"></i> Desactivar</button>
+                                    @else
+                                        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-eye"></i> Activar</button>
+                                    @endif
                                 </form>
                             </div>
-                            <form id="editar-producto-{{ $producto->id_producto }}" method="POST" action="{{ route('productos.update', $producto) }}" class="{{ $editando ? '' : 'hidden' }}" style="margin-top:.8rem;">
+                            <form id="editar-producto-{{ $producto->id_producto }}" method="POST" action="{{ route('productos.update', $producto) }}" enctype="multipart/form-data" class="{{ $editando ? '' : 'hidden' }}" style="margin-top:.8rem;">
                                 @csrf
                                 @method('PUT')
                                 <input type="hidden" name="_id" value="{{ $producto->id_producto }}">
@@ -151,6 +162,13 @@
                                 <div class="form-group"><label>SKU</label><input type="text" name="sku" value="{{ $editando ? old('sku') : $producto->sku }}"></div>
                                 <div class="form-group"><label>Stock mínimo</label><input type="number" min="0" name="stock_minimo" value="{{ $editando ? old('stock_minimo') : $producto->stock_minimo }}"></div>
                                 <div class="form-group"><label>Descripción</label><input type="text" name="descripcion" value="{{ $editando ? old('descripcion') : $producto->descripcion }}"></div>
+                                <div class="form-group">
+                                    <label>{{ $producto->imagen ? 'Cambiar foto' : 'Foto' }}</label>
+                                    <input type="file" name="imagen" accept="image/png,image/jpeg,image/webp">
+                                    @if ($producto->imagen)
+                                        <label class="form-check" style="margin-top:.35rem;"><input type="checkbox" name="quitar_imagen" value="1"> Quitar la foto actual</label>
+                                    @endif
+                                </div>
                                 <label class="form-check"><input type="checkbox" name="activo" value="1" @checked($editando ? old('activo') : $producto->activo)> A la venta</label>
                                 @if ($editando)
                                     @include('admin.partials.errores', ['bag' => 'producto'])

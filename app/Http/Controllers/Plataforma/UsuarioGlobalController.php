@@ -88,6 +88,10 @@ class UsuarioGlobalController extends Controller
             return back()->with('error', 'Debe existir al menos un Super Administrador.');
         }
 
+        if ($this->darDeBajaSiTieneHistorial($usuario)) {
+            return back()->with('info', "{$usuario->name} tiene historial: se bloqueó su acceso en lugar de eliminarlo.");
+        }
+
         $usuario->delete();
 
         return back()->with('success', 'Usuario eliminado.');
@@ -125,5 +129,23 @@ class UsuarioGlobalController extends Controller
         return (int) $usuario->role_id === $superAdminId
             && $nuevoRol !== $superAdminId
             && User::where('role_id', $superAdminId)->count() <= 1;
+    }
+
+    /**
+     * Un usuario que ya operó (ventas, caja, inventario, auditoría) no se borra: se da de baja.
+     */
+    private function darDeBajaSiTieneHistorial(User $usuario): bool
+    {
+        $usado = DB::table('ventas')->where('user_id', $usuario->id)->exists()
+            || DB::table('caja_sesiones')->where('user_id', $usuario->id)->exists()
+            || DB::table('inventario_movimientos')->where('user_id', $usuario->id)->exists()
+            || DB::table('gastos')->where('user_id', $usuario->id)->exists()
+            || DB::table('auditoria')->where('user_id', $usuario->id)->exists();
+
+        if ($usado) {
+            $usuario->update(['estado' => 'bloqueado', 'motivo_bloqueo' => 'Dado de baja (conserva su historial)', 'bloqueado_en' => now()]);
+        }
+
+        return $usado;
     }
 }

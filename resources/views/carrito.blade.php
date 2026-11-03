@@ -13,7 +13,8 @@
 <body>
     <header class="navbar navbar-expand-lg fixed-top scrolled" id="mainNav">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="#hero">
+            <a class="navbar-brand fw-bold" href="{{ url('/') }}">
+                @if ($config->logo)<img src="{{ $config->logo_url }}" alt="" style="height:34px; width:auto; margin-right:.4rem; vertical-align:middle;">@endif
                 <span class="text-primary">
                     {{ $config->nombrePartido()[0] }}
                 </span>
@@ -154,9 +155,9 @@
     <footer class="py-5 bg-dark">
         <div class="container text-center">
             <a class="navbar-brand fw-bold mb-3 d-block" href="{{ url('/') }}">
-                <span class="text-primary">GYM</span> <span class="text-white">IMPULSO</span>
+                <span class="text-primary">{{ $config->nombrePartido()[0] }}</span> <span class="text-white">{{ $config->nombrePartido()[1] }}</span>
             </a>
-            <p class="text-white-50 small mb-0">&copy; 2026 GYM IMPULSO. Todos los derechos reservados.</p>
+            <p class="text-white-50 small mb-0">&copy; {{ date('Y') }} {{ $config->nombre_gym }}. Todos los derechos reservados.</p>
         </div>
     </footer>
 

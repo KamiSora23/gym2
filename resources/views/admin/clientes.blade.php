@@ -62,10 +62,18 @@
 
     <div class="table-card">
         <div class="table-header">
-            <h3>Listado <span class="count">({{ $clientes->total() }})</span></h3>
+            <h3>
+                {{ request('estado') === 'inactivos' ? 'Clientes inactivos' : 'Listado' }} <span class="count">({{ $clientes->total() }})</span>
+                @if (request('estado') === 'inactivos')
+                    <a href="{{ route('clientes.index') }}" class="btn btn-light btn-sm" style="margin-left:.5rem;">Ver activos</a>
+                @elseif ($resumen['inactivos'] > 0)
+                    <a href="{{ route('clientes.index', ['estado' => 'inactivos']) }}" class="btn btn-light btn-sm" style="margin-left:.5rem;"><i class="fas fa-user-slash"></i> Inactivos ({{ $resumen['inactivos'] }})</a>
+                @endif
+            </h3>
             <form method="GET" class="search-box">
                 <i class="fas fa-search"></i>
                 <input type="search" name="q" value="{{ request('q') }}" placeholder="Buscar por nombre, DNI o correo…">
+                @if (request('estado'))<input type="hidden" name="estado" value="{{ request('estado') }}">@endif
             </form>
         </div>
         <div class="table-scroll">
@@ -114,11 +122,19 @@
                                         <button type="button" class="btn btn-light btn-sm btn-icon" title="Editar" data-toggle-target="editar-{{ $cliente->id_cliente }}"><i class="fas fa-pen"></i></button>
                                     @endif
                                     @if ($puedeEliminar)
-                                        <form method="POST" action="{{ route('clientes.destroy', $cliente) }}" data-confirm="¿Eliminar a {{ $cliente->nombre }}?">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Eliminar"><i class="fas fa-trash"></i></button>
-                                        </form>
+                                        @if ($cliente->activo)
+                                            <form method="POST" action="{{ route('clientes.destroy', $cliente) }}" data-confirm="¿Dar de baja a {{ $cliente->nombre }}? Si tiene ventas, membresías o asistencias se desactivará y conservará su historial.">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Dar de baja"><i class="fas fa-user-slash"></i></button>
+                                            </form>
+                                        @else
+                                            <form method="POST" action="{{ route('clientes.estado', $cliente) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-primary btn-sm btn-icon" title="Reactivar"><i class="fas fa-user-check"></i></button>
+                                            </form>
+                                        @endif
                                     @endif
                                 </div>
                             </td>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Auditoria;
 use App\Models\Gasto;
 use App\Support\Permisos;
 use App\Support\Tenant;
@@ -62,6 +63,7 @@ class GastoController extends Controller
         Permisos::exigir('expenses.delete');
 
         $gasto->delete();
+        Auditoria::registrar('gasto.eliminado', "Eliminó el gasto {$gasto->concepto} por ".dinero($gasto->monto));
 
         return back()->with('success', 'Gasto eliminado.');
     }
