@@ -57,6 +57,10 @@ class PedidoController extends Controller
             throw ValidationException::withMessages(['items' => 'Solo puedes pedir una membresía por pedido.']);
         }
 
+        if ($items->contains('tipo', 'plan') && ($pendiente = $cliente->situacionPlanes()['pendiente'])) {
+            throw ValidationException::withMessages(['items' => "Ya tienes una membresía por pagar en el pedido {$pendiente->folio}. Págala en recepción o cancélala desde «Mi cuenta» antes de pedir otra."]);
+        }
+
         $sucursal = Sucursal::withoutGlobalScopes()->findOrFail($datos['id_sucursal']);
 
         $venta = DB::transaction(function () use ($items, $cliente, $user, $sucursal, $datos) {

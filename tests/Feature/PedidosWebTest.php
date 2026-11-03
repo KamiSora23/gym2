@@ -67,7 +67,7 @@ test('el cliente confirma un pedido: queda pendiente, reserva stock y no activa 
         ->and(InventarioMovimiento::first()->motivo)->toBe('Pedido web')
         ->and(Membresia::count())->toBe(0);
 
-    $this->actingAs($this->socio)->get('/mi-cuenta')->assertSee($venta->folio)->assertSee('Pendiente: paga y recoge en recepción');
+    $this->actingAs($this->socio)->get('/mi-cuenta')->assertSee($venta->folio)->assertSee('Por pagar en recepción')->assertSee('Ver comprobante');
 });
 
 test('recepción ve el pedido web, lo cobra en su caja y se activa la membresía', function () {
@@ -125,4 +125,40 @@ test('el personal no hace pedidos web', function () {
     $this->actingAs($this->admin)->get('/checkout')->assertOk()->assertSee('cuenta del personal');
     $this->actingAs($this->admin)->post('/pedidos', ['items' => '[]'])->assertForbidden();
     expect(Venta::count())->toBe(0);
+});
+
+test('el cliente ve el comprobante de su compra con el detalle, y no el de otros', function () {
+    ($this->pedido)([
+        ['tipo' => 'producto', 'ref' => $this->proteina->id_producto, 'qty' => 2],
+        ['tipo' => 'plan', 'ref' => $this->plan->id_plan],
+    ]);
+    $venta = Venta::firstOrFail();
+
+    $this->actingAs($this->socio)->get(route('mi-cuenta.compra', $venta->id_venta))->assertOk()
+        ->assertSee($venta->folio)->assertSee('Proteína Whey')->assertSee('S/ 170.00')
+        ->assertSee('Membresía Trimestral')->assertSee('S/ 490.00')->assertSee('Por pagar en recepción');
+
+    $otro = User::factory()->create($this->e);
+    Cliente::create($this->e + ['nombre' => 'Otro', 'dni' => '888', 'user_id' => $otro->id]);
+    $this->actingAs($otro)->get(route('mi-cuenta.compra', $venta->id_venta))->assertNotFound();
+});
+
+test('el socio con plan vigente ve su plan actual, cuándo empieza uno nuevo y no puede pedir dos membresías por pagar', function () {
+    Membresia::create(['id_cliente' => $this->cliente->id_cliente, 'id_plan' => $this->plan->id_plan, 'fecha_inicio' => today()->subDays(10), 'fecha_fin' => today()->addDays(20), 'estado' => 'activo']);
+    $inicio = today()->addDays(21)->format('d/m/Y');
+
+    $this->actingAs($this->socio)->get('/')->assertOk()
+        ->assertSee('Tu plan actual')->assertSee('Renovar mi plan')->assertSee("Empieza el {$inicio}");
+
+    ($this->pedido)([['tipo' => 'plan', 'ref' => $this->plan->id_plan]])->assertSessionHasNoErrors();
+    $this->get('/')->assertSee('Tienes un pedido por pagar');
+    ($this->pedido)([['tipo' => 'plan', 'ref' => $this->plan->id_plan]])->assertSessionHasErrors('items');
+
+    // Al cobrarla, la renovación queda encadenada y aparece como próxima en Mi cuenta.
+    $recepcion = User::factory()->conRol(Role::RECEPCIONISTA)->create($this->e + ['id_sucursal' => $this->sede]);
+    abrirCaja($recepcion);
+    $this->actingAs($recepcion)->patch('/ventas/'.Venta::first()->id_venta.'/cobrar')->assertSessionHas('success');
+
+    $this->actingAs($this->socio)->get('/mi-cuenta')->assertSee('Renovación pagada')->assertSee($inicio)
+        ->assertSee('Del '.today()->subDays(10)->format('d/m/Y')); // la tarjeta muestra la membresía en curso, no la futura
 });

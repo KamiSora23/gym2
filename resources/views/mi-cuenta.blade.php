@@ -26,6 +26,25 @@
         .lista-item { display: flex; justify-content: space-between; align-items: center; padding: .65rem 0; border-bottom: 1px dashed #e2e8f0; font-size: .92rem; }
         .lista-item:last-child { border-bottom: 0; }
         .lista-item small { display: block; color: #94a3b8; }
+        .cuenta-hero .alert { margin: 1.5rem 0 0; border: 0; border-radius: 14px; }
+        .cuenta-nav { position: sticky; top: 64px; z-index: 5; background: #f4f6fa; padding: .75rem 0; margin-bottom: 1rem; }
+        .cuenta-nav .nav-link { border-radius: 99px; color: #334155 !important; font-weight: 600; font-size: .9rem; padding: .45rem 1rem; background: #fff; box-shadow: 0 2px 8px rgba(15, 23, 42, .05); white-space: nowrap; }
+        .cuenta-nav .nav-link::after { display: none !important; }
+        .cuenta-nav .nav-link:hover { background: #e2e8f0; }
+        .cuenta-nav .nav-link i { color: var(--primary); margin-right: .25rem; }
+        .seccion { scroll-margin-top: 140px; }
+        .proxima { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: .65rem .9rem; font-size: .9rem; }
+        .compra { display: grid; grid-template-columns: 1fr auto; gap: .35rem 1rem; padding: 1rem 0; border-bottom: 1px solid #eef2f7; }
+        .compra:last-child { border-bottom: 0; }
+        .compra .items { font-size: .9rem; color: #334155; }
+        .compra .items div { display: flex; justify-content: space-between; gap: 1rem; }
+        .compra .meta { font-size: .8rem; color: #94a3b8; }
+        .compra .total { font-weight: 800; font-size: 1.05rem; text-align: right; white-space: nowrap; }
+        .chip-estado { font-size: .72rem; font-weight: 700; padding: .2rem .6rem; border-radius: 99px; white-space: nowrap; }
+        .chip-estado.pagado { background: #ecfdf5; color: #047857; }
+        .chip-estado.pendiente { background: #fffbeb; color: #b45309; }
+        .chip-estado.anulado { background: #f1f5f9; color: #64748b; }
+        @media (max-width: 576px) { .cuenta-hero { padding: 6rem 0 4rem; } .compra { grid-template-columns: 1fr; } .compra .total { text-align: left; } }
     </style>
 </head>
 
@@ -48,21 +67,23 @@
     </header>
 
     <section class="cuenta-hero">
-        <div class="container d-flex align-items-center gap-3">
-            <div class="avatar">{{ strtoupper(mb_substr(Auth::user()->name, 0, 1)) }}</div>
-            <div>
-                <h1 class="h3 fw-bold mb-1">Hola, {{ strtok(Auth::user()->name, ' ') }}</h1>
-                <p class="mb-0 text-white-50">Tu espacio en {{ $config->nombre_gym }}</p>
+        <div class="container">
+            <div class="d-flex align-items-center gap-3">
+                <div class="avatar">{{ strtoupper(mb_substr(Auth::user()->name, 0, 1)) }}</div>
+                <div>
+                    <h1 class="h3 fw-bold mb-1">Hola, {{ strtok(Auth::user()->name, ' ') }}</h1>
+                    <p class="mb-0 text-white-50">Tu espacio en {{ $config->nombre_gym }}</p>
+                </div>
             </div>
+            @foreach (['success' => 'success', 'error' => 'danger', 'info' => 'info'] as $clave => $tipo)
+                @if (session($clave))
+                    <div class="alert alert-{{ $tipo }} d-flex align-items-center gap-2"><i class="bi {{ $tipo === 'success' ? 'bi-check-circle-fill' : ($tipo === 'danger' ? 'bi-exclamation-triangle-fill' : 'bi-info-circle-fill') }}"></i> {{ session($clave) }}</div>
+                @endif
+            @endforeach
         </div>
     </section>
 
     <main class="container pb-5">
-        @foreach (['success' => 'success', 'error' => 'danger'] as $clave => $tipo)
-            @if (session($clave))
-                <div class="alert alert-{{ $tipo }} mt-3">{{ session($clave) }}</div>
-            @endif
-        @endforeach
 
         @if (! $cliente)
             <div class="cuenta-card membresia-card">
@@ -94,10 +115,28 @@
                     <div class="progreso mt-3"><div style="width: {{ $avance }}%"></div></div>
                     <div class="d-flex justify-content-between small text-muted mt-1"><span>{{ $avance }}% usado</span><span>{{ $restantes }} días restantes</span></div>
                 @endif
+                @if ($proxima = $cliente->proximaMembresia)
+                    <div class="proxima mt-3"><i class="bi bi-arrow-repeat text-primary"></i> Renovación pagada: <strong>{{ $proxima->plan?->nombre }}</strong> del {{ $proxima->fecha_inicio->format('d/m/Y') }} al {{ $proxima->fecha_fin->format('d/m/Y') }}.</div>
+                @endif
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    <a href="{{ url('/#planes') }}" class="btn btn-sm btn-primary">{{ $m ? ($proxima ? 'Ver planes' : 'Renovar o cambiar de plan') : 'Elegir un plan' }}</a>
+                    @if ($config->checkin_qr)
+                        <a href="#mi-pase" class="btn btn-sm btn-outline-dark"><i class="bi bi-qr-code"></i> Mi pase</a>
+                    @endif
+                </div>
             </div>
 
+            <nav class="cuenta-nav">
+                <ul class="nav gap-1 flex-nowrap overflow-auto">
+                    <li class="nav-item"><a class="nav-link" href="#resumen"><i class="bi bi-grid"></i>Resumen</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#entrenamiento"><i class="bi bi-list-check"></i>Entrenamiento</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#clases"><i class="bi bi-calendar-plus"></i>Clases</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#compras"><i class="bi bi-bag"></i>Mis compras</a></li>
+                </ul>
+            </nav>
+
             @if ($config->checkin_qr)
-                <div class="cuenta-card mb-4 d-flex flex-wrap align-items-center gap-4" id="mi-pase">
+                <div class="cuenta-card mb-4 d-flex flex-wrap align-items-center gap-4 seccion" id="mi-pase">
                     <div style="width:190px; height:190px; background:#fff; padding:8px; border-radius:14px;">{!! \App\Support\CodigoQr::svg($cliente->codigoAcceso(), 174) !!}</div>
                     <div class="flex-grow-1">
                         <div class="text-muted small fw-bold text-uppercase">Mi pase de acceso</div>
@@ -111,7 +150,7 @@
                 </div>
             @endif
 
-            <div class="row g-4">
+            <div class="row g-4 seccion" id="resumen">
                 <div class="col-lg-4">
                     <div class="cuenta-card">
                         <h5><i class="bi bi-person-badge"></i> Mi coach</h5>
@@ -173,7 +212,7 @@
                     </div>
                 </div>
 
-                <div class="col-lg-7">
+                <div class="col-lg-7 seccion" id="entrenamiento">
                     <div class="cuenta-card">
                         <h5><i class="bi bi-list-check"></i> Mi rutina</h5>
                         @if ($rutina)
@@ -235,7 +274,7 @@
                     </div>
                 @endif
 
-                <div class="col-12">
+                <div class="col-12 seccion" id="clases">
                     <div class="cuenta-card">
                         <h5><i class="bi bi-calendar-plus"></i> Clases disponibles</h5>
                         @if (! $m)
@@ -264,24 +303,47 @@
                     </div>
                 </div>
 
-                <div class="col-lg-6">
+                <div class="col-12 seccion" id="compras">
                     <div class="cuenta-card">
-                        <h5><i class="bi bi-bag"></i> Mis compras</h5>
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <h5 class="mb-0"><i class="bi bi-bag"></i> Mis compras</h5>
+                            <span class="small text-muted">Total pagado: <strong class="text-dark">{{ dinero($totalPagado) }}</strong></span>
+                        </div>
                         @forelse ($compras as $v)
-                            <div class="lista-item">
-                                <span>{{ $v->detalles->pluck('descripcion')->implode(', ') }}<small>{{ $v->folio }} · {{ $v->fecha->format('d/m/Y') }} · {{ $v->estado === 'pendiente' ? 'Pendiente: paga y recoge en recepción' : 'Pagado' }}{{ $v->origen === 'web' ? ' · pedido web' : '' }}</small></span>
-                                <span class="text-end">
-                                    <strong>{{ dinero($v->total) }}</strong>
+                            @php
+                                $estado = ['completado' => ['pagado', 'Pagado'], 'pendiente' => ['pendiente', 'Por pagar en recepción'], 'anulado' => ['anulado', $v->origen === 'web' ? 'Cancelado' : 'Anulado']][$v->estado] ?? ['anulado', $v->estado];
+                            @endphp
+                            <div class="compra">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                        <a href="{{ route('mi-cuenta.compra', $v->id_venta) }}" class="fw-bold text-dark text-decoration-none">Compra {{ $v->folio }}</a>
+                                        <span class="chip-estado {{ $estado[0] }}">{{ $estado[1] }}</span>
+                                    </div>
+                                    <div class="items">
+                                        @foreach ($v->detalles as $d)
+                                            <div><span>{{ $d->cantidad }} × {{ $d->descripcion }}</span><span class="text-muted">{{ dinero($d->subtotal) }}</span></div>
+                                        @endforeach
+                                    </div>
+                                    <div class="meta mt-1">
+                                        {{ $v->fecha->format('d/m/Y') }}
+                                        · {{ \App\Models\Venta::METODOS_PAGO[$v->metodo_pago] ?? ucfirst((string) $v->metodo_pago) }}
+                                        @if ($v->sucursal) · {{ $v->sucursal->nombre }} @endif
+                                        · {{ $v->origen === 'web' ? 'Pedido web' : 'En recepción' }}
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-column align-items-end gap-2">
+                                    <div class="total">{{ dinero($v->total) }}</div>
+                                    <a href="{{ route('mi-cuenta.compra', $v->id_venta) }}" class="btn btn-sm btn-outline-dark">Ver comprobante</a>
                                     @if ($v->origen === 'web' && $v->estado === 'pendiente')
-                                        <form method="POST" action="{{ route('pedidos.cancelar', $v->id_venta) }}" class="mt-1">
+                                        <form method="POST" action="{{ route('pedidos.cancelar', $v->id_venta) }}" onsubmit="return confirm('¿Cancelar el pedido {{ $v->folio }}?')">
                                             @csrf @method('PATCH')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar pedido</button>
                                         </form>
                                     @endif
-                                </span>
+                                </div>
                             </div>
                         @empty
-                            <p class="text-muted mb-0">Aún no tienes compras.</p>
+                            <p class="text-muted mb-0">Aún no tienes compras. <a href="{{ url('/shop') }}">Visita la tienda</a>.</p>
                         @endforelse
                     </div>
                 </div>

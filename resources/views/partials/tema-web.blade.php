@@ -5,5 +5,7 @@
     .btn-primary, .btn-primary:hover, .btn-primary:focus { color: var(--primary-text) !important; border-color: var(--primary) !important; }
     .btn-primary:hover { background-color: var(--primary-hover) !important; }
     .bg-primary { background-color: var(--primary) !important; color: var(--primary-text) !important; }
+    .btn-outline-primary { color: var(--primary) !important; border-color: var(--primary) !important; background: transparent; }
+    .btn-outline-primary:hover { background-color: var(--primary) !important; color: var(--primary-text) !important; }
     .badge.bg-danger { background-color: var(--primary) !important; color: var(--primary-text) !important; }
 </style>

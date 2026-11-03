@@ -71,6 +71,7 @@ Route::middleware('auth')->group(function () {
     // ---------- Área del cliente ----------
     Route::middleware('role:'.Role::CLIENTE)->group(function () {
         Route::get('/mi-cuenta', MiCuentaController::class)->name('mi-cuenta');
+        Route::get('/mi-cuenta/compras/{venta}', [MiCuentaController::class, 'compra'])->name('mi-cuenta.compra');
         Route::post('/mi-cuenta/clases/{clase}', [MiCuentaController::class, 'inscribirse'])->name('mi-cuenta.inscribirse');
         Route::delete('/mi-cuenta/clases/{clase}', [MiCuentaController::class, 'retirarse'])->name('mi-cuenta.retirarse');
         Route::post('/pedidos', [PedidoController::class, 'store'])->middleware('throttle:10,1')->name('pedidos.store');

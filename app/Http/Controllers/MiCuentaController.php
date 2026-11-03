@@ -22,7 +22,7 @@ class MiCuentaController extends Controller
     public function __invoke(Request $request): View
     {
         $cliente = Cliente::withoutGlobalScopes()
-            ->with(['entrenador', 'membresiaActiva.plan'])
+            ->with(['entrenador', 'membresiaActiva.plan', 'proximaMembresia.plan'])
             ->where('user_id', $request->user()->id)
             ->first();
 
@@ -44,8 +44,23 @@ class MiCuentaController extends Controller
             'clases' => $misClases,
             'asistencias' => Asistencia::withoutGlobalScopes()->where('id_cliente', $idCliente)->orderByDesc('fecha')->limit(8)->get(),
             'asistenciasMes' => Asistencia::withoutGlobalScopes()->where('id_cliente', $idCliente)->where('fecha', '>=', today()->startOfMonth()->toDateString())->count(),
-            'compras' => Venta::withoutGlobalScopes()->with('detalles')->where('id_cliente', $idCliente)->where('estado', '!=', 'anulado')->orderByDesc('fecha')->limit(5)->get(),
+            'compras' => Venta::withoutGlobalScopes()->with(['detalles', 'sucursal'])->where('id_cliente', $idCliente)->orderByDesc('fecha')->orderByDesc('id_venta')->limit(10)->get(),
+            'totalPagado' => (float) Venta::withoutGlobalScopes()->where('id_cliente', $idCliente)->where('estado', 'completado')->sum('total'),
         ]);
+    }
+
+    /**
+     * Comprobante de una compra del propio cliente.
+     */
+    public function compra(Request $request, int $venta): View
+    {
+        $cliente = $this->cliente($request);
+
+        $venta = Venta::withoutGlobalScopes()->with(['detalles', 'sucursal', 'membresias.plan'])
+            ->where('id_cliente', $cliente->id_cliente)
+            ->findOrFail($venta);
+
+        return view('mi-cuenta-compra', ['venta' => $venta, 'cliente' => $cliente]);
     }
 
     /**

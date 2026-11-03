@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cliente;
 use App\Models\Empresa;
 use App\Models\Entrenador;
 use App\Models\Plan;
@@ -22,7 +23,12 @@ class PortalController extends Controller
     {
         $datos = $this->catalogo($request);
 
+        $cliente = $request->user()?->isCliente()
+            ? Cliente::withoutGlobalScopes()->with('membresiaActiva')->where('user_id', $request->user()->id)->first()
+            : null;
+
         return view('index', [
+            'situacion' => $cliente?->situacionPlanes(),
             'planes' => $datos['planes'],
             'destacados' => $datos['productos']->take(4),
             'coaches' => $datos['coaches'],

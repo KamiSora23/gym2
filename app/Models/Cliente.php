@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\PerteneceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -94,10 +95,38 @@ class Cliente extends Model
 
     public function membresiaActiva()
     {
+        // Las condiciones van dentro de ofMany para que elija la mayor fecha_fin entre las que corren hoy.
         return $this->hasOne(Membresia::class, 'id_cliente', 'id_cliente')
-            ->where('estado', 'activo')
-            ->whereDate('fecha_fin', '>=', today())
-            ->latestOfMany('fecha_fin');
+            ->ofMany(['fecha_fin' => 'max'], fn ($q) => $q->where('estado', 'activo')
+                ->whereDate('fecha_inicio', '<=', today())
+                ->whereDate('fecha_fin', '>=', today()));
+    }
+
+    /**
+     * Renovación ya pagada que empieza cuando termine la membresía actual.
+     */
+    public function proximaMembresia()
+    {
+        return $this->hasOne(Membresia::class, 'id_cliente', 'id_cliente')
+            ->ofMany(['fecha_inicio' => 'min'], fn ($q) => $q->where('estado', 'activo')
+                ->whereDate('fecha_inicio', '>', today()));
+    }
+
+    /**
+     * Situación del socio frente a los planes: hasta cuándo tiene cubierto y si hay una membresía por pagar.
+     *
+     * @return array{plan: ?int, hasta: ?Carbon, pendiente: ?Venta}
+     */
+    public function situacionPlanes(): array
+    {
+        $hasta = $this->membresias()->where('estado', 'activo')->whereDate('fecha_fin', '>=', today())->max('fecha_fin');
+
+        return [
+            'plan' => $this->membresiaActiva?->id_plan,
+            'hasta' => $hasta ? Carbon::parse($hasta) : null,
+            'pendiente' => Venta::withoutGlobalScopes()->where('id_cliente', $this->id_cliente)->where('estado', 'pendiente')
+                ->whereHas('detalles', fn ($q) => $q->whereNotNull('id_plan'))->latest('id_venta')->first(),
+        ];
     }
 
     public function clases()

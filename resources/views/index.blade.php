@@ -193,27 +193,60 @@
                     Sin letras pequeñas, solo resultados.</p>
             </div>
 
+            @if ($situacion && $situacion['hasta'])
+                <div class="plan-aviso reveal">
+                    <i class="bi bi-patch-check-fill"></i>
+                    <div>
+                        <strong>Tu membresía está cubierta hasta el {{ $situacion['hasta']->format('d/m/Y') }}.</strong>
+                        <span>Si compras un plan ahora, empieza el {{ $situacion['hasta']->copy()->addDay()->format('d/m/Y') }}: no pierdes ningún día.</span>
+                    </div>
+                    <a href="{{ route('mi-cuenta') }}" class="btn btn-sm btn-outline-dark ms-auto">Mi cuenta</a>
+                </div>
+            @endif
+
             <div class="row g-4 justify-content-center">
                 @forelse ($planes as $plan)
                     @php
-                        $iconos = ['bi-lightning', 'bi-fire', 'bi-trophy', 'bi-gem'];
-                        $destacado = $loop->iteration === 2;
+                        $iconos = ['bi-lightning-charge', 'bi-fire', 'bi-trophy', 'bi-gem'];
+                        $esMio = $situacion && $situacion['plan'] === $plan->id_plan;
+                        $destacado = ! $situacion && $loop->iteration === 2;
+                        $pendiente = $situacion['pendiente'] ?? null;
                     @endphp
-                    <div class="col-md-6 col-lg-3 reveal">
-                        <div class="premium-card plan-card p-4 h-100 {{ $destacado ? 'border border-2 border-primary' : '' }}">
-                            @if ($destacado)<span class="badge bg-primary text-dark mb-2">Más popular</span>@endif
-                            <div class="mb-4">
-                                <i class="bi {{ $iconos[$loop->index % 4] }} text-primary fs-2"></i>
-                                <h4 class="fw-bold mt-2">{{ $plan->nombre }}</h4>
-                                <div class="price">{{ dinero($plan->precio) }}<span class="fs-6 text-muted fw-normal"> / {{ $plan->duracion_dias }} días</span></div>
+                    <div class="{{ $planes->count() <= 3 ? 'col-md-6 col-lg-4' : 'col-md-6 col-lg-3' }} reveal">
+                        <div class="premium-card plan-card h-100 {{ $esMio ? 'mio' : ($destacado ? 'popular' : '') }}">
+                            @if ($esMio)
+                                <span class="plan-cinta"><i class="bi bi-check2-circle"></i> Tu plan actual</span>
+                            @elseif ($destacado)
+                                <span class="plan-cinta">Más popular</span>
+                            @endif
+
+                            <i class="bi {{ $iconos[$loop->index % 4] }} plan-icono"></i>
+                            <h4 class="fw-bold mb-1">{{ $plan->nombre }}</h4>
+                            <p class="text-muted small mb-3">{{ $plan->descripcion ?: 'Acceso al gimnasio durante '.$plan->duracion_dias.' días.' }}</p>
+
+                            <div class="plan-precio">
+                                <span class="monto">{{ dinero($plan->precio) }}</span>
+                                <span class="periodo">por {{ $plan->duracion_dias }} días</span>
                             </div>
-                            <p class="text-muted small flex-grow-1">{{ $plan->descripcion ?: 'Acceso al gimnasio durante '.$plan->duracion_dias.' días.' }}</p>
-                            <button type="button" class="btn btn-primary w-100"
-                                data-agregar data-tipo="plan" data-ref="{{ $plan->id_plan }}"
-                                data-nombre="Membresía {{ $plan->nombre }}" data-precio="{{ (float) $plan->precio }}"
-                                data-img="{{ asset('img/img'.(($loop->index % 3) + 1).'.jpg') }}">
-                                Quiero este plan
-                            </button>
+                            @if ($plan->duracion_dias > 31)
+                                <p class="small text-muted mb-0">Equivale a {{ dinero($plan->precio / max(1, round($plan->duracion_dias / 30))) }} al mes</p>
+                            @endif
+
+                            <div class="mt-auto pt-4">
+                                @if ($pendiente)
+                                    <a href="{{ route('mi-cuenta') }}#compras" class="btn btn-outline-dark w-100">Tienes un pedido por pagar ({{ $pendiente->folio }})</a>
+                                @else
+                                    <button type="button" class="btn {{ $esMio || $destacado ? 'btn-primary' : 'btn-outline-primary' }} w-100"
+                                        data-agregar data-tipo="plan" data-ref="{{ $plan->id_plan }}"
+                                        data-nombre="Membresía {{ $plan->nombre }}" data-precio="{{ (float) $plan->precio }}"
+                                        data-img="{{ asset('img/img'.(($loop->index % 3) + 1).'.jpg') }}">
+                                        {{ $esMio ? 'Renovar mi plan' : ($situacion && $situacion['hasta'] ? 'Cambiar a este plan' : 'Quiero este plan') }}
+                                    </button>
+                                    @if ($situacion && $situacion['hasta'])
+                                        <p class="small text-muted text-center mt-2 mb-0">Empieza el {{ $situacion['hasta']->copy()->addDay()->format('d/m/Y') }}</p>
+                                    @endif
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @empty
