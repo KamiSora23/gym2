@@ -9,6 +9,7 @@ use App\Support\CatalogoPermisos;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,6 +28,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // En producción con dominio https (Cloudflare), todos los enlaces y assets salen en https.
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
+
         // Se resuelve al renderizar una vista (no al arrancar la app),
         // así "php artisan migrate" funciona aunque la base de datos esté vacía.
         // @can('sales.cancel') y $user->can(...) usan el motor de autorización.

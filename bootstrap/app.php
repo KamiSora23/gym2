@@ -23,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'personal' => EnsurePersonal::class,
         ]);
 
+        // Detrás de Cloudflare / proxy inverso: respetar X-Forwarded-Proto y la IP real.
+        $middleware->trustProxies(at: '*');
+
         // Un usuario bloqueado pierde la sesión en su siguiente petición.
         $middleware->appendToGroup('web', EnsureUsuarioActivo::class);
 

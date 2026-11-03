@@ -1,0 +1,56 @@
+services:
+  app:
+    build: .
+    image: gym-app:latest
+    container_name: gym-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+    # Puerto local opcional (para probar sin Cloudflare). Con el túnel no hace falta abrirlo.
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      # Logos, fotos de productos y logs sobreviven a las actualizaciones de la imagen
+      - gym_storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - interna
+      - cloudflare_red
+
+  db:
+    image: mysql:8.4
+    container_name: gym-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      TZ: ${APP_TIMEZONE:-America/Lima}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    # Sin puerto público: solo la app la usa por la red interna.
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    volumes:
+      - gym_mysql:/var/lib/mysql
+    networks:
+      - interna
+
+volumes:
+  gym_storage:
+  gym_mysql:
+
+networks:
+  interna:
+  # Red donde ya corre tu contenedor de cloudflared (créala una vez: docker network create cloudflare_red)
+  cloudflare_red:
+    external: true

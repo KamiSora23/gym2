@@ -48,11 +48,12 @@ class EmpresaPrincipalSeeder extends Seeder
             ],
         );
 
+        // Credenciales configurables en .env: ADMIN_EMAIL y ADMIN_PASSWORD.
         $admin = User::firstOrCreate(
-            ['email' => 'admin@gym.com'],
+            ['email' => env('ADMIN_EMAIL', 'admin@gym.com')],
             [
-                'name' => 'Administrador',
-                'password' => '12345678',
+                'name' => env('ADMIN_NAME', 'Administrador'),
+                'password' => env('ADMIN_PASSWORD', '12345678'),
                 'role_id' => Role::idDe(Role::ADMIN),
                 'email_verified_at' => now(),
             ],
