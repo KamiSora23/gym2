@@ -195,7 +195,8 @@ class ProductoController extends Controller
             'precio' => ['required', 'numeric', 'min:0', 'max:999999'],
             'precio_compra' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'stock_minimo' => ['nullable', 'integer', 'min:0', 'max:100000'],
-            'id_tipo' => ['required', Rule::exists('tipo_producto', 'id_tipo')->where('id_empresa', Tenant::empresaId())],
+            'id_tipo' => ['required', Rule::exists('tipo_producto', 'id_tipo')->where('id_empresa', Tenant::empresaId())
+                ->where(fn ($q) => $q->where('activo', true)->orWhere('id_tipo', $producto?->id_tipo))],
             'imagen' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'quitar_imagen' => ['nullable', 'boolean'],
         ]);

@@ -79,7 +79,8 @@ test('clients get a personal coach', function () {
 test('attendance check-in and check-out', function () {
     $cliente = Cliente::create(['id_empresa' => $this->admin->id_empresa, 'nombre' => 'Ana', 'dni' => '1']);
 
-    $this->post('/asistencias', ['id_cliente' => $cliente->id_cliente])->assertSessionHas('info'); // sin membresía
+    $this->post('/asistencias', ['id_cliente' => $cliente->id_cliente])->assertSessionHas('error'); // sin membresía: acceso denegado
+    $this->post('/asistencias', ['id_cliente' => $cliente->id_cliente, 'cortesia' => 1, 'motivo' => 'Clase de prueba'])->assertSessionHas('info');
     $this->post('/asistencias', ['id_cliente' => $cliente->id_cliente])->assertSessionHas('error'); // check-in abierto
 
     $asistencia = Asistencia::firstOrFail();

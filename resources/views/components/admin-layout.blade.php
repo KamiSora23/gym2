@@ -31,6 +31,7 @@
     $menu = [
         'Inicio' => [
             ['resumen', 'dashboard', 'fa-chart-line', $esCoach ? 'Mi panel' : 'Panel', 'dashboard.view'],
+            ['reportes', 'reportes.index', 'fa-chart-pie', 'Reportes', 'reports.financial'],
         ],
         'Clientes' => [
             ['clientes', 'clientes.index', 'fa-users', $soloAsignados ? 'Mis alumnos' : 'Clientes', 'clients.view|clients.view_assigned'],
@@ -46,6 +47,7 @@
             ['ventas', 'ventas.index', 'fa-cart-shopping', $puede('sales.view') ? 'Ventas' : 'Mis ventas', 'sales.view|sales.view_own|sales.create'],
             ['gastos', 'gastos.index', 'fa-file-invoice-dollar', 'Gastos', 'expenses.view|expenses.create'],
             ['catalogo', 'productos.index', 'fa-box-open', 'Productos', 'products.view'],
+            ['categorias', 'categorias.index', 'fa-tags', 'Categorías', 'products.create|expenses.create'],
             ['kardex', 'inventario.movimientos', 'fa-boxes-stacked', 'Inventario', 'inventory.view'],
         ],
         'Administración' => [

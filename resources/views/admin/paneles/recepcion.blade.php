@@ -58,6 +58,9 @@
         </div>
     </form>
 
+    @include('admin.partials.acceso-denegado')
+    @include('admin.partials.errores', ['bag' => 'asistencia'])
+
     <div class="grid-2">
         <div class="table-card">
             <div class="table-header"><h3>En el gym ahora</h3><a href="{{ route('asistencias.index') }}" class="btn btn-light btn-sm">Ver todo</a></div>

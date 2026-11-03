@@ -104,8 +104,8 @@ test('ninguna página falla para', function (string $email) {
     foreach (rutasGet($this->params) as $url) {
         $respuesta = $this->actingAs($user)->withSession($sesion)->get($url);
 
-        if (! in_array($respuesta->status(), [200, 302, 403], true)) {
-            $errores[] = "{$url} → {$respuesta->status()}";
+        if (! in_array($respuesta->getStatusCode(), [200, 302, 403], true)) {
+            $errores[] = "{$url} → {$respuesta->getStatusCode()}";
         }
     }
 

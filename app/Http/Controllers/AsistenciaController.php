@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asistencia;
+use App\Models\Auditoria;
 use App\Models\Cliente;
 use App\Support\Permisos;
 use App\Support\Tenant;
@@ -40,6 +41,10 @@ class AsistenciaController extends Controller
         $datos = $request->validateWithBag('asistencia', [
             'id_cliente' => ['required', Rule::exists('clientes', 'id_cliente')->where('id_empresa', Tenant::empresaId())->where('activo', true)],
             'id_sucursal' => ['nullable', 'integer'],
+            'cortesia' => ['nullable', 'boolean'],
+            'motivo' => ['nullable', 'required_if:cortesia,1', 'string', 'max:150'],
+        ], [
+            'motivo.required_if' => 'Indica el motivo del pase (pase diario, clase de prueba, cortesía…).',
         ]);
 
         $abierta = Asistencia::where('id_cliente', $datos['id_cliente'])
@@ -52,6 +57,18 @@ class AsistenciaController extends Controller
         }
 
         $cliente = Cliente::with('membresiaActiva')->find($datos['id_cliente']);
+        $cortesia = (bool) ($datos['cortesia'] ?? false);
+
+        // Control de acceso: sin membresía vigente no entra, salvo un pase autorizado y registrado.
+        if (! $cliente->membresiaActiva && ! $cortesia) {
+            $congelada = $cliente->membresias()->where('estado', 'congelada')->exists();
+
+            return back()
+                ->with('error', $congelada
+                    ? "Acceso denegado: la membresía de {$cliente->nombre} está congelada. Reanúdala desde su ficha."
+                    : "Acceso denegado: {$cliente->nombre} no tiene una membresía vigente.")
+                ->with('sin_membresia', ['id' => $cliente->id_cliente, 'nombre' => $cliente->nombre]);
+        }
 
         Asistencia::create([
             'id_sucursal' => Tenant::sucursalParaRegistro($datos['id_sucursal'] ?? null),
@@ -60,11 +77,18 @@ class AsistenciaController extends Controller
             'hora_entrada' => now()->format('H:i:s'),
         ]);
 
+        if (! $cliente->membresiaActiva) {
+            Auditoria::registrar('asistencia.pase', "Dejó pasar a {$cliente->nombre} sin membresía vigente: {$datos['motivo']}", $cliente);
+
+            return back()->with('info', "Entrada de {$cliente->nombre} registrada como pase: {$datos['motivo']}.");
+        }
+
+        $dias = (int) today()->diffInDays($cliente->membresiaActiva->fecha_fin, false);
         $mensaje = "Check-in de {$cliente->nombre} registrado.";
 
-        return $cliente->membresiaActiva
-            ? back()->with('success', $mensaje)
-            : back()->with('info', $mensaje.' Atención: el cliente no tiene una membresía vigente.');
+        return $dias <= 7
+            ? back()->with('success', $mensaje)->with('info', 'Su membresía vence '.($dias === 0 ? 'hoy' : "en {$dias} día(s)").': ofrécele renovar.')
+            : back()->with('success', $mensaje);
     }
 
     public function salida(Asistencia $asistencia): RedirectResponse

@@ -45,6 +45,8 @@
                 @include('admin.partials.errores', ['bag' => 'asistencia'])
             @endif
         </form>
+
+        @include('admin.partials.acceso-denegado')
     @endif
 
     <div class="table-card">

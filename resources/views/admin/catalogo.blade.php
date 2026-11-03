@@ -7,7 +7,7 @@
             <a href="{{ route('inventario.movimientos') }}" class="btn btn-light"><i class="fas fa-boxes-stacked"></i> Kardex</a>
         @endif
         @if ($puedeEditar)
-            <button type="button" class="btn btn-light" data-toggle-target="form-categoria"><i class="fas fa-tags"></i> Categoría</button>
+            <a href="{{ route('categorias.index') }}" class="btn btn-light"><i class="fas fa-tags"></i> Categorías</a>
             <button type="button" class="btn btn-primary" data-toggle-target="form-producto"><i class="fas fa-plus"></i> Nuevo producto</button>
         @endif
     </x-slot>
@@ -45,7 +45,7 @@
                 <div class="form-group">
                     <label>Categoría *</label>
                     <select name="id_tipo" required>
-                        @foreach ($categorias as $c)
+                        @foreach ($categorias->where('activo', true) as $c)
                             <option value="{{ $c->id_tipo }}" @selected($creando && old('id_tipo') == $c->id_tipo)>{{ $c->nombre }}</option>
                         @endforeach
                     </select>
@@ -151,7 +151,7 @@
                                 <div class="form-group">
                                     <label>Categoría</label>
                                     <select name="id_tipo">
-                                        @foreach ($categorias as $c)<option value="{{ $c->id_tipo }}" @selected(($editando ? old('id_tipo') : $producto->id_tipo) == $c->id_tipo)>{{ $c->nombre }}</option>@endforeach
+                                        @foreach ($categorias->filter(fn ($c) => $c->activo || $c->id_tipo === $producto->id_tipo) as $c)<option value="{{ $c->id_tipo }}" @selected(($editando ? old('id_tipo') : $producto->id_tipo) == $c->id_tipo)>{{ $c->nombre }}</option>@endforeach
                                     </select>
                                 </div>
                                 <div class="form-group">

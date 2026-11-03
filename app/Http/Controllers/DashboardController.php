@@ -167,11 +167,11 @@ class DashboardController extends Controller
         $rangoSemana = [$inicioSemana->toDateString(), $hoy->copy()->endOfWeek(Carbon::SUNDAY)->toDateString()];
         $inicioMes = $hoy->copy()->startOfMonth();
 
-        $ingresosSemana = (float) Ingreso::deSucursal()->whereBetween('fecha', $rangoSemana)->sum('monto');
-        $gastosSemana = (float) Gasto::deSucursal()->whereBetween('fecha', $rangoSemana)->sum('monto');
+        $ingresosSemana = (float) Ingreso::deSucursal()->entreFechas($rangoSemana)->sum('monto');
+        $gastosSemana = (float) Gasto::deSucursal()->entreFechas($rangoSemana)->sum('monto');
 
         $porDia = Asistencia::deSucursal()
-            ->whereBetween('fecha', $rangoSemana)
+            ->entreFechas($rangoSemana)
             ->select('fecha', DB::raw('count(*) as total'))
             ->groupBy('fecha')
             ->get()

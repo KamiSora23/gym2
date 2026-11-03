@@ -9,8 +9,6 @@ class Gasto extends Model
 {
     use PerteneceAEmpresa;
 
-    public const CATEGORIAS = ['Renta', 'Salarios', 'Servicios', 'Insumos', 'Mantenimiento', 'Marketing', 'Otros'];
-
     protected $table = 'gastos';
 
     protected $primaryKey = 'id_gasto';

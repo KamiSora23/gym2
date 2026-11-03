@@ -13,7 +13,12 @@ class TipoProducto extends Model
 
     protected $primaryKey = 'id_tipo';
 
-    protected $fillable = ['id_empresa', 'nombre'];
+    protected $fillable = ['id_empresa', 'nombre', 'activo'];
+
+    protected function casts(): array
+    {
+        return ['activo' => 'boolean'];
+    }
 
     public function productos()
     {

@@ -37,6 +37,18 @@ trait PerteneceAEmpresa
     }
 
     /**
+     * Registros con "fecha" dentro del rango [desde, hasta] (por día, sin importar la hora guardada).
+     *
+     * @param  array{0: string, 1: string}  $rango
+     */
+    public function scopeEntreFechas(Builder $query, array $rango): Builder
+    {
+        $columna = $this->getTable().'.fecha';
+
+        return $query->whereDate($columna, '>=', $rango[0])->whereDate($columna, '<=', $rango[1]);
+    }
+
+    /**
      * Filtra por la sucursal seleccionada (si hay una).
      */
     public function scopeDeSucursal(Builder $query): Builder

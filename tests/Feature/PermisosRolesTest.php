@@ -217,7 +217,7 @@ test('the cashier registers check-ins and clients but cannot assign a coach', fu
     $luis = Cliente::where('dni', '77')->first();
     expect($luis->id_entrenador)->toBeNull();
 
-    $this->actingAs($cajera)->post('/asistencias', ['id_cliente' => $luis->id_cliente])->assertSessionHas('info');
+    $this->actingAs($cajera)->post('/asistencias', ['id_cliente' => $luis->id_cliente, 'cortesia' => 1, 'motivo' => 'Pase diario'])->assertSessionHas('info');
 });
 
 // ---------- Cliente ----------

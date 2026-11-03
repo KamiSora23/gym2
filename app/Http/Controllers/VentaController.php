@@ -47,8 +47,8 @@ class VentaController extends Controller
         $validas = fn () => Venta::deSucursal()->where('estado', '!=', 'anulado')
             ->when($soloPropias, fn ($w) => $w->where(fn ($q) => $q->where('user_id', $request->user()->id)->orWhere('origen', 'web')));
         $semana = [today()->startOfWeek()->toDateString(), today()->endOfWeek()->toDateString()];
-        $numSemana = $validas()->whereBetween('fecha', $semana)->count();
-        $totalSemana = (float) $validas()->whereBetween('fecha', $semana)->sum('total');
+        $numSemana = $validas()->entreFechas($semana)->count();
+        $totalSemana = (float) $validas()->entreFechas($semana)->sum('total');
 
         return view('admin.ventas.index', [
             'ventas' => $ventas,

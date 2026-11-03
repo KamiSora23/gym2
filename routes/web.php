@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UsuarioController;
 use App\Http\Controllers\AsistenciaController;
 use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\CajaController;
+use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClaseController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\ConfiguracionController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Plataforma\UsuarioGlobalController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\RutinaController;
 use App\Http\Controllers\VentaController;
 use App\Http\Middleware\EnModoPlataforma;
@@ -144,6 +146,23 @@ Route::middleware('auth')->group(function () {
             Route::post('/catalogo/{producto}/stock', [ProductoController::class, 'stock'])->name('productos.stock');
             Route::post('/catalogo-categorias', [ProductoController::class, 'categoria'])->name('productos.categoria');
             Route::get('/inventario/movimientos', [ProductoController::class, 'movimientos'])->name('inventario.movimientos');
+        });
+
+        Route::middleware(Permisos::middleware('reports.financial'))->group(function () {
+            Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
+            Route::get('/reportes/ventas.csv', [ReporteController::class, 'exportar'])->name('reportes.exportar');
+        });
+
+        Route::middleware(Permisos::middleware('products.create|expenses.create'))->group(function () {
+            Route::get('/categorias', [CategoriaController::class, 'index'])->name('categorias.index');
+            Route::post('/categorias/productos', [CategoriaController::class, 'storeProducto'])->name('categorias.productos.store');
+            Route::put('/categorias/productos/{categoria}', [CategoriaController::class, 'updateProducto'])->name('categorias.productos.update');
+            Route::patch('/categorias/productos/{categoria}/estado', [CategoriaController::class, 'estadoProducto'])->name('categorias.productos.estado');
+            Route::delete('/categorias/productos/{categoria}', [CategoriaController::class, 'destroyProducto'])->name('categorias.productos.destroy');
+            Route::post('/categorias/gastos', [CategoriaController::class, 'storeGasto'])->name('categorias.gastos.store');
+            Route::put('/categorias/gastos/{categoria}', [CategoriaController::class, 'updateGasto'])->name('categorias.gastos.update');
+            Route::patch('/categorias/gastos/{categoria}/estado', [CategoriaController::class, 'estadoGasto'])->name('categorias.gastos.estado');
+            Route::delete('/categorias/gastos/{categoria}', [CategoriaController::class, 'destroyGasto'])->name('categorias.gastos.destroy');
         });
 
         Route::middleware(Permisos::middleware('memberships.view'))->group(function () {

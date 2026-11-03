@@ -2,6 +2,9 @@
     subtitulo="Control de egresos del gimnasio.">
 
     <x-slot name="acciones">
+        @if (Auth::user()->permite('expenses.create'))
+            <a href="{{ route('categorias.index') }}" class="btn btn-light"><i class="fas fa-tags"></i> Categorías</a>
+        @endif
         <button type="button" class="btn btn-primary" data-toggle-target="form-gasto"><i class="fas fa-plus"></i> Nuevo gasto</button>
     </x-slot>
 
@@ -20,7 +23,7 @@
             <div class="form-group">
                 <label>Categoría</label>
                 <select name="categoria">
-                    @foreach (\App\Models\Gasto::CATEGORIAS as $c)<option value="{{ $c }}" @selected(old('categoria') === $c)>{{ $c }}</option>@endforeach
+                    @foreach ($categorias->where('activo', true) as $c)<option value="{{ $c->nombre }}" @selected(old('categoria') === $c->nombre)>{{ $c->nombre }}</option>@endforeach
                 </select>
             </div>
             <div class="form-group"><label>Monto *</label><input type="number" step="0.01" min="0.01" name="monto" value="{{ old('monto') }}" required></div>
@@ -47,7 +50,7 @@
                 <label>Categoría</label>
                 <select name="categoria">
                     <option value="">Todas</option>
-                    @foreach (\App\Models\Gasto::CATEGORIAS as $c)<option value="{{ $c }}" @selected(request('categoria') === $c)>{{ $c }}</option>@endforeach
+                    @foreach ($categorias as $c)<option value="{{ $c->nombre }}" @selected(request('categoria') === $c->nombre)>{{ $c->nombre }}</option>@endforeach
                 </select>
             </div>
             <div class="form-group"><label>Mes</label><input type="month" name="mes" value="{{ request('mes') }}"></div>

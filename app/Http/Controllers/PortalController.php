@@ -79,7 +79,8 @@ class PortalController extends Controller
 
         return [
             'productos' => $productos,
-            'categorias' => TipoProducto::withoutGlobalScopes()->where('id_empresa', $empresaId)->orderBy('nombre')->get()
+            'categorias' => TipoProducto::withoutGlobalScopes()->where('id_empresa', $empresaId)->where('activo', true)
+                ->whereIn('id_tipo', $productos->pluck('id_tipo'))->orderBy('nombre')->get()
                 ->each(fn ($c) => $c->slug = Str::slug($c->nombre)),
             'planes' => Plan::withoutGlobalScopes()->where('id_empresa', $empresaId)->where('activo', true)->orderBy('precio')->get(),
             'coaches' => Entrenador::withoutGlobalScopes()->where('id_empresa', $empresaId)->where('activo', true)->orderBy('nombre')->get(),

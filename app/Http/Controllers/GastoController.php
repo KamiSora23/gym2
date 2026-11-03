@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Auditoria;
+use App\Models\CategoriaGasto;
 use App\Models\Gasto;
 use App\Support\Permisos;
 use App\Support\Tenant;
@@ -28,10 +29,11 @@ class GastoController extends Controller
 
         return view('admin.gastos', [
             'gastos' => $gastos,
+            'categorias' => CategoriaGasto::deLaEmpresa(),
             'sucursales' => Tenant::sucursales(),
             'stats' => [
                 'hoy' => (float) $base()->whereDate('fecha', today())->sum('monto'),
-                'semana' => (float) $base()->whereBetween('fecha', [today()->startOfWeek()->toDateString(), today()->endOfWeek()->toDateString()])->sum('monto'),
+                'semana' => (float) $base()->entreFechas([today()->startOfWeek()->toDateString(), today()->endOfWeek()->toDateString()])->sum('monto'),
                 'mes' => (float) $base()->where('fecha', '>=', today()->startOfMonth()->toDateString())->sum('monto'),
                 'registros' => $base()->count(),
             ],
@@ -44,7 +46,7 @@ class GastoController extends Controller
 
         $datos = $request->validateWithBag('gasto', [
             'concepto' => ['required', 'string', 'max:255'],
-            'categoria' => ['nullable', Rule::in(Gasto::CATEGORIAS)],
+            'categoria' => ['nullable', Rule::in(CategoriaGasto::deLaEmpresa()->where('activo', true)->pluck('nombre'))],
             'monto' => ['required', 'numeric', 'min:0.01', 'max:99999999'],
             'fecha' => ['required', 'date', 'before_or_equal:today'],
             'id_sucursal' => ['nullable', 'integer'],
