@@ -50,6 +50,15 @@
                             <label for="slogan">Slogan</label>
                             <input id="slogan" type="text" name="slogan" value="{{ old('slogan', $c->slogan) }}" placeholder="Tu mejor versión empieza aquí">
                         </div>
+                        <div class="form-group">
+                            <label for="moneda">Moneda</label>
+                            <select id="moneda" name="moneda">
+                                @foreach (\App\Models\Configuracion::MONEDAS as $simbolo => $nombreMoneda)
+                                    <option value="{{ $simbolo }}" @selected(old('moneda', $c->moneda ?: 'S/') === $simbolo)>{{ $nombreMoneda }}</option>
+                                @endforeach
+                            </select>
+                            <span class="muted">Se usa en ventas, caja, reportes y en el sitio web.</span>
+                        </div>
                     </div>
                     <div class="form-grid" style="margin-top:1rem;">
                         <div>

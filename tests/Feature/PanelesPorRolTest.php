@@ -78,5 +78,5 @@ test('cashier panel lists pending sales to collect', function () {
     $cajera = User::factory()->conRol(Role::CAJERA)->create($this->mismaSede);
     Venta::create($this->mismaSede + ['user_id' => $cajera->id, 'fecha' => today(), 'total' => 75, 'estado' => 'pendiente', 'metodo_pago' => 'yape']);
 
-    $this->actingAs($cajera)->get('/dashboard')->assertSee('#00001')->assertSee('$75.00');
+    $this->actingAs($cajera)->get('/dashboard')->assertSee('#00001')->assertSee('S/ 75.00');
 });

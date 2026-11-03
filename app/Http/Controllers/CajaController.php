@@ -35,10 +35,23 @@ class CajaController extends Controller
             ->orderByDesc('cerrada_en')
             ->paginate(15);
 
+        $cajas = Caja::with(['sesionAbierta.usuario', 'sucursal', 'responsables'])
+            ->deSucursal()
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get();
+
+        // Cajas que este empleado puede abrir; primero las que tiene asignadas.
+        $disponibles = $cajas->filter(fn ($c) => $c->puedeUsarla($user))
+            ->sortByDesc(fn ($c) => $c->responsables->contains('id', $user->id))
+            ->values();
+
         return view('admin.caja', [
             'sesion' => $sesion,
             'esperado' => $sesion?->saldoEsperado(),
-            'cajas' => Caja::with('sesionAbierta.usuario', 'sucursal')->deSucursal()->where('activo', true)->orderBy('nombre')->get(),
+            'cajas' => $disponibles,
+            'todasLasCajas' => $cajas,
+            'sugerida' => $disponibles->first(fn ($c) => ! $c->sesionAbierta),
             'abiertas' => $veTodas
                 ? CajaSesion::with(['usuario', 'caja'])->deSucursal()->where('estado', 'abierta')->where('user_id', '!=', $user->id)->get()
                 : collect(),
@@ -69,10 +82,8 @@ class CajaController extends Controller
 
         $caja = Caja::findOrFail($datos['id_caja']);
 
-        // El personal de una sucursal solo opera las cajas de su sucursal.
-        if ($user->id_sucursal && (int) $caja->id_sucursal !== (int) $user->id_sucursal) {
-            abort(403, 'Esa caja pertenece a otra sucursal.');
-        }
+        // Solo sus responsables (o cualquiera de la sucursal si no tiene) pueden abrirla.
+        abort_unless($caja->puedeUsarla($user), 403, 'Esta caja está asignada a otros empleados o pertenece a otra sucursal.');
 
         $sesion = DB::transaction(function () use ($caja, $user, $datos) {
             if (CajaSesion::where('id_caja', $caja->id_caja)->where('estado', 'abierta')->lockForUpdate()->exists()) {
@@ -200,6 +211,26 @@ class CajaController extends Controller
         return back()->with('success', 'Diferencia aprobada.');
     }
 
+    /**
+     * Gestión de cajas: crear, renombrar, desactivar y asignar responsables.
+     */
+    public function gestion(): View
+    {
+        Permisos::exigir('cash.manage');
+
+        $cajas = Caja::with(['sucursal', 'responsables', 'sesionAbierta.usuario'])
+            ->deSucursal()
+            ->orderBy('id_sucursal')
+            ->orderBy('nombre')
+            ->get();
+
+        return view('admin.cajas', [
+            'cajas' => $cajas,
+            'empleados' => $this->empleadosDeCaja(),
+            'sucursales' => Tenant::sucursales(),
+        ]);
+    }
+
     public function crearCaja(Request $request): RedirectResponse
     {
         Permisos::exigir('cash.manage');
@@ -207,12 +238,69 @@ class CajaController extends Controller
         $datos = $request->validateWithBag('nuevaCaja', [
             'nombre' => ['required', 'string', 'max:60'],
             'id_sucursal' => ['required', Rule::in(Tenant::sucursales()->pluck('id_sucursal'))],
+            'responsables' => ['nullable', 'array'],
+            'responsables.*' => [Rule::in($this->empleadosDeCaja()->pluck('id'))],
         ]);
 
-        $caja = Caja::create($datos + ['activo' => true]);
+        $caja = Caja::create(['nombre' => $datos['nombre'], 'id_sucursal' => $datos['id_sucursal'], 'activo' => true]);
+        $caja->responsables()->sync($this->responsablesDeSucursal($datos['responsables'] ?? [], $caja));
+
         Auditoria::registrar('caja.creada', "Creó la caja {$caja->nombre}", $caja);
 
         return back()->with('success', "Caja «{$caja->nombre}» creada.");
+    }
+
+    public function actualizarCaja(Request $request, Caja $caja): RedirectResponse
+    {
+        Permisos::exigir('cash.manage');
+        Tenant::exigirSucursal($caja->id_sucursal);
+
+        $datos = $request->validateWithBag('caja'.$caja->id_caja, [
+            'nombre' => ['required', 'string', 'max:60'],
+            'responsables' => ['nullable', 'array'],
+            'responsables.*' => [Rule::in($this->empleadosDeCaja()->pluck('id'))],
+        ]);
+
+        $activo = $request->boolean('activo');
+
+        if (! $activo && $caja->sesionAbierta()->exists()) {
+            return back()->with('error', "La {$caja->nombre} tiene un turno abierto: ciérralo antes de desactivarla.");
+        }
+
+        $caja->update(['nombre' => $datos['nombre'], 'activo' => $activo]);
+        $responsables = $this->responsablesDeSucursal($datos['responsables'] ?? [], $caja);
+        $caja->responsables()->sync($responsables);
+
+        $nombres = User::whereIn('id', $responsables)->pluck('name')->implode(', ');
+        Auditoria::registrar('caja.actualizada', "Actualizó la caja {$caja->nombre}: responsables ".($nombres ?: 'cualquiera de la sucursal'), $caja);
+
+        return back()->with('success', "Caja «{$caja->nombre}» actualizada.");
+    }
+
+    /**
+     * Empleados de la empresa que pueden operar caja.
+     */
+    private function empleadosDeCaja()
+    {
+        return User::with('sucursal')
+            ->where('id_empresa', Tenant::empresaId())
+            ->where('estado', 'activo')
+            ->orderBy('name')
+            ->get()
+            ->filter(fn ($u) => $u->isStaff() && Permisos::puede($u, 'cash.open'))
+            ->values();
+    }
+
+    /**
+     * Solo se asignan empleados de la sucursal de la caja (o sin sucursal fija).
+     */
+    private function responsablesDeSucursal(array $ids, Caja $caja): array
+    {
+        return $this->empleadosDeCaja()
+            ->whereIn('id', array_map('intval', $ids))
+            ->filter(fn ($u) => ! $u->id_sucursal || (int) $u->id_sucursal === (int) $caja->id_sucursal)
+            ->pluck('id')
+            ->all();
     }
 
     private function autorizarVer(User $user, CajaSesion $sesion): void

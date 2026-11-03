@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <h6 class="fw-bold mb-3" style="font-size: 0.95rem; letter-spacing: -0.3px;">${p.name}</h6>
                     <div class="d-flex align-items-center justify-content-between mt-auto">
-                        <span class="fw-bold text-dark fs-5">$${p.price.toFixed(2)}</span>
+                        <span class="fw-bold text-dark fs-5">${(window.GYM_MONEDA || 'S/')} ${p.price.toFixed(2)}</span>
                         <button class="btn btn-outline-dark-ui btn-sm rounded-circle d-lg-none" onclick="addToCart(${p.id})">
                             <i class="bi bi-plus"></i>
                         </button>
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <img src="${item.img}" class="cart-item-img" alt="">
                     <div class="flex-grow-1">
                         <h6 class="fw-bold mb-0">${item.name}</h6>
-                        <small class="text-muted">$${item.price.toFixed(2)}</small>
+                        <small class="text-muted">${(window.GYM_MONEDA || 'S/')} ${item.price.toFixed(2)}</small>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <button class="btn btn-light btn-sm rounded-pill" onclick="changeQty('${item.id}', -1)">-</button>
@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <button class="btn btn-light btn-sm rounded-pill" onclick="changeQty('${item.id}', 1)">+</button>
                     </div>
                     <div class="text-end" style="min-width: 80px;">
-                        <span class="fw-bold">$${(item.price * item.qty).toFixed(2)}</span>
+                        <span class="fw-bold">${(window.GYM_MONEDA || 'S/')} ${(item.price * item.qty).toFixed(2)}</span>
                     </div>
                     <button class="btn text-danger" onclick="removeItem('${item.id}')"><i class="bi bi-trash"></i></button>
                 </div>
@@ -190,11 +190,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <h5 class="fw-bold mb-4">Resumen</h5>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Subtotal</span>
-                            <span>$${total.toFixed(2)}</span>
+                            <span>${(window.GYM_MONEDA || 'S/')} ${total.toFixed(2)}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-4">
                             <span class="fw-bold fs-5">Total</span>
-                            <span class="fw-bold fs-5 text-primary">$${total.toFixed(2)}</span>
+                            <span class="fw-bold fs-5 text-primary">${(window.GYM_MONEDA || 'S/')} ${total.toFixed(2)}</span>
                         </div>
                         <a href="/checkout" class="btn btn-primary w-100 py-3">Pagar ahora</a>
                     </div>

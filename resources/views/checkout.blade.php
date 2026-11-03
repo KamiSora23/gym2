@@ -195,11 +195,11 @@
                         <hr>
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Subtotal</span>
-                            <span id="subtotal-step3">$0.00</span>
+                            <span id="subtotal-step3">{{ moneda() }} 0.00</span>
                         </div>
                         <div class="d-flex justify-content-between mb-4">
                             <span class="fw-bold">Total</span>
-                            <span class="fw-bold text-primary fs-5" id="total-step3">$0.00</span>
+                            <span class="fw-bold text-primary fs-5" id="total-step3">{{ moneda() }} 0.00</span>
                         </div>
                         <div class="p-3 bg-light rounded-3 text-center small text-muted">
                             <i class="bi bi-shield-check me-1"></i> Pago 100% seguro
@@ -240,8 +240,8 @@
                     `;
                 }).join('');
                 
-                document.getElementById('subtotal-step3').textContent = `$${total.toFixed(2)}`;
-                document.getElementById('total-step3').textContent = `$${total.toFixed(2)}`;
+                document.getElementById('subtotal-step3').textContent = `${window.GYM_MONEDA || 'S/'} ${total.toFixed(2)}`;
+                document.getElementById('total-step3').textContent = `${window.GYM_MONEDA || 'S/'} ${total.toFixed(2)}`;
             }
 
             const confirmBtn = document.getElementById('confirmPurchaseBtn');

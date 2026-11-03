@@ -95,11 +95,11 @@
 
         <div class="form-card" style="position:sticky; top:calc(var(--nav-h) + 1rem);">
             <h3><i class="fas fa-receipt"></i> Resumen</h3>
-            <div class="summary-row"><span>Membresía</span><strong id="r-plan">$0.00</strong></div>
-            <div class="summary-row"><span>Productos</span><strong id="r-productos">$0.00</strong></div>
+            <div class="summary-row"><span>Membresía</span><strong id="r-plan">{{ dinero(0) }}</strong></div>
+            <div class="summary-row"><span>Productos</span><strong id="r-productos">{{ dinero(0) }}</strong></div>
             <div style="border-top:1px solid var(--line); margin:.5rem 0; padding-top:.75rem;">
                 <span class="muted">TOTAL</span>
-                <div class="pos-total" id="r-total">$0.00</div>
+                <div class="pos-total" id="r-total">{{ dinero(0) }}</div>
             </div>
             <div class="form-group">
                 <label>Método de pago</label>
@@ -126,7 +126,7 @@
                 <option value="">Producto…</option>
             </select>
             <input type="number" min="1" value="1" data-campo="cantidad" required>
-            <span class="sub">$0.00</span>
+            <span class="sub">{{ dinero(0) }}</span>
             <button type="button" class="btn btn-danger btn-sm btn-icon" data-quitar title="Quitar"><i class="fas fa-xmark"></i></button>
         </div>
     </template>
@@ -142,7 +142,7 @@
                 const plan = document.getElementById('id_plan');
                 const sucursal = document.getElementById('id_sucursal');
                 const cliente = document.getElementById('id_cliente');
-                const fmt = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const fmt = n => (window.GYM_MONEDA || 'S/') + ' ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 let indice = 0;
 
                 const stockDe = p => {

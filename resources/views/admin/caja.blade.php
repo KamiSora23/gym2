@@ -1,6 +1,12 @@
 <x-admin-layout :titulo="$veTodas ? 'Cajas' : 'Mi caja'" icono="fa-cash-register" modulo="caja"
     subtitulo="Cada cobro y devolución queda registrado en la sesión de caja de quien lo realiza.">
 
+    @if (Auth::user()->permite('cash.manage'))
+        <x-slot name="acciones">
+            <a href="{{ route('cajas.index') }}" class="btn btn-light"><i class="fas fa-sliders"></i> Gestionar cajas</a>
+        </x-slot>
+    @endif
+
     @php
         $metodos = \App\Models\Venta::METODOS_PAGO;
     @endphp
@@ -11,16 +17,23 @@
                 @csrf
                 <h3><i class="fas fa-lock-open"></i> Abrir mi caja</h3>
                 <p class="muted" style="margin:-.5rem 0 1rem;">Registra el fondo inicial en efectivo con el que empiezas tu turno.</p>
+                @if ($cajas->isEmpty())
+                    <div class="alert alert-error" style="margin:0;"><i class="fas fa-circle-exclamation"></i> No tienes ninguna caja asignada. Pide al administrador que te asigne una.</div>
+                @else
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Caja</label>
                         <select name="id_caja" required>
                             @foreach ($cajas as $caja)
-                                <option value="{{ $caja->id_caja }}" @disabled($caja->sesionAbierta)>
-                                    {{ $caja->nombre }} · {{ $caja->sucursal?->nombre }}{{ $caja->sesionAbierta ? ' (en uso por '.$caja->sesionAbierta->usuario?->name.')' : '' }}
+                                @php $mia = $caja->responsables->contains('id', Auth::id()); @endphp
+                                <option value="{{ $caja->id_caja }}" @disabled($caja->sesionAbierta) @selected($sugerida?->is($caja))>
+                                    {{ $caja->nombre }} · {{ $caja->sucursal?->nombre }}{{ $mia ? ' · asignada a ti' : '' }}{{ $caja->sesionAbierta ? ' (en uso por '.$caja->sesionAbierta->usuario?->name.')' : '' }}
                                 </option>
                             @endforeach
                         </select>
+                        @unless ($sugerida)
+                            <span class="field-error">Todas tus cajas están en uso en este momento.</span>
+                        @endunless
                     </div>
                     <div class="form-group">
                         <label>Fondo inicial (efectivo)</label>
@@ -28,7 +41,8 @@
                     </div>
                 </div>
                 @include('admin.partials.errores', ['bag' => 'caja'])
-                <div class="form-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-lock-open"></i> Abrir caja</button></div>
+                <div class="form-actions"><button type="submit" class="btn btn-primary" @disabled(! $sugerida)><i class="fas fa-lock-open"></i> Abrir caja</button></div>
+                @endif
             </form>
 
             <div class="panel-card">
@@ -142,14 +156,35 @@
         </div>
     @endif
 
-    @if ($abiertas->isNotEmpty())
-        <div class="panel-card">
-            <h4>Otras cajas abiertas ahora</h4>
-            <ul class="tx-list">
-                @foreach ($abiertas as $a)
-                    <li><span>{{ $a->usuario?->name }}<small>{{ $a->caja?->nombre }} · desde {{ $a->abierta_en->format('H:i') }}</small></span><a href="{{ route('caja.sesion', $a) }}" class="btn btn-light btn-sm">Ver</a></li>
-                @endforeach
-            </ul>
+    @if ($veTodas)
+        <div class="table-card">
+            <div class="table-header"><h3>Estado de las cajas ahora</h3><span class="muted">{{ $todasLasCajas->filter->sesionAbierta->count() }} de {{ $todasLasCajas->count() }} abiertas</span></div>
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead><tr><th>Caja</th><th>Sucursal</th><th>Responsables</th><th>Estado</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach ($todasLasCajas as $c)
+                            <tr>
+                                <td><strong>{{ $c->nombre }}</strong></td>
+                                <td>{{ $c->sucursal?->nombre }}</td>
+                                <td style="white-space:normal;">{{ $c->responsables->pluck('name')->implode(', ') ?: 'Cualquiera de la sucursal' }}</td>
+                                <td>
+                                    @if ($c->sesionAbierta)
+                                        <span class="status-badge status-active"><i class="fas fa-lock-open"></i> {{ $c->sesionAbierta->usuario?->name }} · desde {{ $c->sesionAbierta->abierta_en->format('H:i') }}</span>
+                                    @else
+                                        <span class="status-badge status-info">Cerrada</span>
+                                    @endif
+                                </td>
+                                <td class="text-right">
+                                    @if ($c->sesionAbierta && ! $c->sesionAbierta->usuario?->is(Auth::user()))
+                                        <a href="{{ route('caja.sesion', $c->sesionAbierta) }}" class="btn btn-light btn-sm">Ver turno</a>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     @endif
 
@@ -180,18 +215,4 @@
     </div>
     @include('admin.partials.paginacion', ['items' => $historial])
 
-    @if (Auth::user()->permite('cash.manage'))
-        <form method="POST" action="{{ route('cajas.store') }}" class="form-card">
-            @csrf
-            <h3><i class="fas fa-plus"></i> Nueva caja</h3>
-            <div class="form-grid cols-4" style="align-items:end;">
-                <div class="form-group"><label>Nombre</label><input type="text" name="nombre" placeholder="Caja 2" required></div>
-                <div class="form-group">
-                    <label>Sucursal</label>
-                    <select name="id_sucursal">@foreach ($sucursales as $s)<option value="{{ $s->id_sucursal }}">{{ $s->nombre }}</option>@endforeach</select>
-                </div>
-                <div class="form-group"><button type="submit" class="btn btn-light"><i class="fas fa-save"></i> Crear caja</button></div>
-            </div>
-        </form>
-    @endif
 </x-admin-layout>

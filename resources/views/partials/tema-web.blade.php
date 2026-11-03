@@ -1,4 +1,5 @@
-{{-- Colores del sitio público según la configuración de la empresa. --}}
+{{-- Colores y moneda del sitio público según la configuración de la empresa. --}}
+<script>window.GYM_MONEDA = @json(moneda());</script>
 <style>
     :root { {!! \App\Support\Tema::web($config) !!} }
     .btn-primary, .btn-primary:hover, .btn-primary:focus { color: var(--primary-text) !important; border-color: var(--primary) !important; }

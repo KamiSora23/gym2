@@ -75,6 +75,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script>window.GYM_MONEDA = @json(moneda());</script>
 
     <style>
         :root { {!! \App\Support\Tema::panel($config, \App\Support\Tenant::sucursal()) !!} }

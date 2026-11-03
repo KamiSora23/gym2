@@ -9,6 +9,7 @@ use App\Support\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -39,6 +40,7 @@ class ConfiguracionController extends Controller
             'instagram' => ['nullable', 'url', 'max:255'],
             'tiktok' => ['nullable', 'url', 'max:255'],
             'tema' => ['nullable', 'string', 'max:30'],
+            'moneda' => ['nullable', Rule::in(array_keys(Configuracion::MONEDAS))],
             'color_primario' => $hex,
             'color_sidebar' => $hex,
             'color_secundario' => $hex,
@@ -87,6 +89,7 @@ class ConfiguracionController extends Controller
         }
 
         $datos['web_usa_colores_panel'] = $request->boolean('web_usa_colores_panel');
+        $datos['moneda'] = $datos['moneda'] ?? ($config->moneda ?: 'S/');
         $coloresSucursal = $datos['sucursal_colores'] ?? [];
         unset($datos['sucursal_colores'], $datos['quitar_logo']);
 

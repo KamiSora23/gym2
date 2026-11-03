@@ -122,7 +122,9 @@ Route::middleware('auth')->group(function () {
             Route::post('/caja/cerrar', [CajaController::class, 'cerrar'])->name('caja.cerrar');
             Route::get('/caja/sesiones/{sesion}', [CajaController::class, 'show'])->name('caja.sesion');
             Route::patch('/caja/sesiones/{sesion}/aprobar', [CajaController::class, 'aprobar'])->name('caja.aprobar');
+            Route::get('/cajas', [CajaController::class, 'gestion'])->name('cajas.index');
             Route::post('/cajas', [CajaController::class, 'crearCaja'])->name('cajas.store');
+            Route::put('/cajas/{caja}', [CajaController::class, 'actualizarCaja'])->name('cajas.update');
         });
 
         Route::middleware(Permisos::middleware('expenses.view|expenses.create'))->group(function () {

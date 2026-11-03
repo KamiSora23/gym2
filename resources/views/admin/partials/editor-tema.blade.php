@@ -70,7 +70,7 @@
             <div class="tp-main">
                 <div class="tp-title"><span class="tp-icon"><i class="fas fa-chart-line"></i></span> Resumen</div>
                 <div class="tp-cards">
-                    <div class="tp-card"><small>VENTAS HOY</small><b>$1,250</b></div>
+                    <div class="tp-card"><small>VENTAS HOY</small><b>{{ moneda() }} 1,250</b></div>
                     <div class="tp-card accent"><small>CLIENTES</small><b>148</b></div>
                 </div>
                 <div class="tp-hero">Resumen operativo</div>

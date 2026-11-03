@@ -136,11 +136,11 @@
                                 <h5 class="fw-bold mb-4">Resumen</h5>
                                 <div class="d-flex justify-content-between mb-2">
                                     <span>Subtotal</span>
-                                    <span id="cartSubtotal">$0.00</span>
+                                    <span id="cartSubtotal">{{ moneda() }} 0.00</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-4">
                                     <span class="fw-bold fs-5">Total</span>
-                                    <span class="fw-bold fs-5 text-primary" id="cartTotal">$0.00</span>
+                                    <span class="fw-bold fs-5 text-primary" id="cartTotal">{{ moneda() }} 0.00</span>
                                 </div>
                                 <a href="{{ url('/checkout') }}" class="btn btn-primary w-100 py-3">Pagar ahora</a>
                             </div>

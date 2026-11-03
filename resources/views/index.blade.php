@@ -199,7 +199,7 @@
                         <div class="mb-4">
                             <i class="bi bi-lightning text-primary fs-2"></i>
                             <h4 class="fw-bold mt-2">Plan Básico</h4>
-                            <div class="price">$29<span class="fs-6 text-muted fw-normal">/mes</span></div>
+                            <div class="price">{{ moneda() }} 29<span class="fs-6 text-muted fw-normal">/mes</span></div>
                         </div>
                         <ul class="list-unstyled mb-4 flex-grow-1">
                             <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i> Acceso a máquinas</li>
@@ -224,7 +224,7 @@
                         <div class="mb-4">
                             <i class="bi bi-fire text-primary fs-2"></i>
                             <h4 class="fw-bold mt-2">Plan Fitness</h4>
-                            <div class="price">$49<span class="fs-6 text-muted fw-normal">/mes</span></div>
+                            <div class="price">{{ moneda() }} 49<span class="fs-6 text-muted fw-normal">/mes</span></div>
                         </div>
                         <ul class="list-unstyled mb-4 flex-grow-1">
                             <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i> Acceso total</li>
@@ -249,7 +249,7 @@
                         <div class="mb-4">
                             <i class="bi bi-trophy text-primary fs-2"></i>
                             <h4 class="fw-bold mt-2">Plan Elite</h4>
-                            <div class="price">$89<span class="fs-6 text-muted fw-normal">/mes</span></div>
+                            <div class="price">{{ moneda() }} 89<span class="fs-6 text-muted fw-normal">/mes</span></div>
                         </div>
                         <ul class="list-unstyled mb-4 flex-grow-1">
                             <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i> Todo lo anterior</li>
@@ -334,7 +334,7 @@
                             <h5 class="fw-bold mb-2">Guantes de Entrenamiento</h5>
                             <p class="text-muted mb-3">Protección y comodidad para tu entrenamiento.</p>
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="fs-4 fw-bold text-warning">$29.99</span>
+                                <span class="fs-4 fw-bold text-warning">{{ moneda() }} 29.99</span>
                                 <button class="btn btn-dark btn-sm">Agregar</button>
                             </div>
                         </div>
@@ -349,7 +349,7 @@
                             <h5 class="fw-bold mb-2">Shaker Proteína</h5>
                             <p class="text-muted mb-3">BPA free, capacidad de 700ml.</p>
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="fs-4 fw-bold text-warning">$14.99</span>
+                                <span class="fs-4 fw-bold text-warning">{{ moneda() }} 14.99</span>
                                 <button class="btn btn-dark btn-sm">Agregar</button>
                             </div>
                         </div>
@@ -364,7 +364,7 @@
                             <h5 class="fw-bold mb-2">Muñequeras</h5>
                             <p class="text-muted mb-3">Soporte para entrenamiento de fuerza.</p>
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="fs-4 fw-bold text-warning">$19.99</span>
+                                <span class="fs-4 fw-bold text-warning">{{ moneda() }} 19.99</span>
                                 <button class="btn btn-dark btn-sm">Agregar</button>
                             </div>
                         </div>
@@ -379,7 +379,7 @@
                             <h5 class="fw-bold mb-2">Mancuernas Ajustables</h5>
                             <p class="text-muted mb-3">Set de 10kg a 40kg.</p>
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="fs-4 fw-bold text-warning">$149.99</span>
+                                <span class="fs-4 fw-bold text-warning">{{ moneda() }} 149.99</span>
                                 <button class="btn btn-dark btn-sm">Agregar</button>
                             </div>
                         </div>

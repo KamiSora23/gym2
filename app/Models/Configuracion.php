@@ -32,6 +32,20 @@ class Configuracion extends Model
         'web_color_primario' => '#ffc107',
         'web_color_oscuro' => '#0f172a',
         'web_usa_colores_panel' => false,
+        'moneda' => 'S/',
+    ];
+
+    /**
+     * Monedas disponibles: símbolo => nombre.
+     */
+    public const MONEDAS = [
+        'S/' => 'Soles (S/)',
+        '$' => 'Dólares ($)',
+        '€' => 'Euros (€)',
+        'MX$' => 'Pesos mexicanos (MX$)',
+        'COP' => 'Pesos colombianos (COP)',
+        'Bs' => 'Bolivianos (Bs)',
+        'CLP' => 'Pesos chilenos (CLP)',
     ];
 
     public const NOMBRE_PLATAFORMA = 'GYM Cloud';
@@ -50,6 +64,7 @@ class Configuracion extends Model
         'web_color_primario',
         'web_color_oscuro',
         'web_usa_colores_panel',
+        'moneda',
         'telefono',
         'email',
         'direccion',

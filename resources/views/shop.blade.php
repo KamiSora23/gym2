@@ -176,7 +176,7 @@
                                 <h5 class="fw-bold mb-2">Guantes de Entrenamiento</h5>
                                 <p class="text-muted mb-3">Protección y comodidad para tu entrenamiento.</p>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fs-4 fw-bold text-warning">$29.99</span>
+                                    <span class="fs-4 fw-bold text-warning">{{ moneda() }} 29.99</span>
                                     <button class="btn btn-dark btn-sm">Agregar</button>
                                 </div>
                             </div>
@@ -191,7 +191,7 @@
                                 <h5 class="fw-bold mb-2">Shaker Proteína</h5>
                                 <p class="text-muted mb-3">BPA free, capacidad de 700ml.</p>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fs-4 fw-bold text-warning">$14.99</span>
+                                    <span class="fs-4 fw-bold text-warning">{{ moneda() }} 14.99</span>
                                     <button class="btn btn-dark btn-sm">Agregar</button>
                                 </div>
                             </div>
@@ -206,7 +206,7 @@
                                 <h5 class="fw-bold mb-2">Muñequeras</h5>
                                 <p class="text-muted mb-3">Soporte para entrenamiento de fuerza.</p>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fs-4 fw-bold text-warning">$19.99</span>
+                                    <span class="fs-4 fw-bold text-warning">{{ moneda() }} 19.99</span>
                                     <button class="btn btn-dark btn-sm">Agregar</button>
                                 </div>
                             </div>
@@ -221,7 +221,7 @@
                                 <h5 class="fw-bold mb-2">Mancuernas Ajustables</h5>
                                 <p class="text-muted mb-3">Set de 10kg a 40kg.</p>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fs-4 fw-bold text-warning">$149.99</span>
+                                    <span class="fs-4 fw-bold text-warning">{{ moneda() }} 149.99</span>
                                     <button class="btn btn-dark btn-sm">Agregar</button>
                                 </div>
                             </div>
@@ -241,7 +241,7 @@
                                     <h5 class="fw-bold mb-2">Guantes de Entrenamiento</h5>
                                     <p class="text-muted mb-3">Protección y comodidad para tu entrenamiento.</p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fs-4 fw-bold text-warning">$29.99</span>
+                                        <span class="fs-4 fw-bold text-warning">{{ moneda() }} 29.99</span>
                                         <button class="btn btn-dark btn-sm">Agregar</button>
                                     </div>
                                 </div>
@@ -256,7 +256,7 @@
                                     <h5 class="fw-bold mb-2">Shaker Proteína</h5>
                                     <p class="text-muted mb-3">BPA free, capacidad de 700ml.</p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fs-4 fw-bold text-warning">$14.99</span>
+                                        <span class="fs-4 fw-bold text-warning">{{ moneda() }} 14.99</span>
                                         <button class="btn btn-dark btn-sm">Agregar</button>
                                     </div>
                                 </div>
@@ -271,7 +271,7 @@
                                     <h5 class="fw-bold mb-2">Muñequeras</h5>
                                     <p class="text-muted mb-3">Soporte para entrenamiento de fuerza.</p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fs-4 fw-bold text-warning">$19.99</span>
+                                        <span class="fs-4 fw-bold text-warning">{{ moneda() }} 19.99</span>
                                         <button class="btn btn-dark btn-sm">Agregar</button>
                                     </div>
                                 </div>
@@ -286,7 +286,7 @@
                                     <h5 class="fw-bold mb-2">Mancuernas Ajustables</h5>
                                     <p class="text-muted mb-3">Set de 10kg a 40kg.</p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fs-4 fw-bold text-warning">$149.99</span>
+                                        <span class="fs-4 fw-bold text-warning">{{ moneda() }} 149.99</span>
                                         <button class="btn btn-dark btn-sm">Agregar</button>
                                     </div>
                                 </div>
@@ -308,7 +308,7 @@
                                     <h5 class="fw-bold mb-2">Guantes de Entrenamiento</h5>
                                     <p class="text-muted mb-3">Protección y comodidad para tu entrenamiento.</p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fs-4 fw-bold text-warning">$29.99</span>
+                                        <span class="fs-4 fw-bold text-warning">{{ moneda() }} 29.99</span>
                                         <button class="btn btn-dark btn-sm">Agregar</button>
                                     </div>
                                 </div>
@@ -323,7 +323,7 @@
                                     <h5 class="fw-bold mb-2">Shaker Proteína</h5>
                                     <p class="text-muted mb-3">BPA free, capacidad de 700ml.</p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fs-4 fw-bold text-warning">$14.99</span>
+                                        <span class="fs-4 fw-bold text-warning">{{ moneda() }} 14.99</span>
                                         <button class="btn btn-dark btn-sm">Agregar</button>
                                     </div>
                                 </div>
@@ -338,7 +338,7 @@
                                     <h5 class="fw-bold mb-2">Muñequeras</h5>
                                     <p class="text-muted mb-3">Soporte para entrenamiento de fuerza.</p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fs-4 fw-bold text-warning">$19.99</span>
+                                        <span class="fs-4 fw-bold text-warning">{{ moneda() }} 19.99</span>
                                         <button class="btn btn-dark btn-sm">Agregar</button>
                                     </div>
                                 </div>
@@ -353,7 +353,7 @@
                                     <h5 class="fw-bold mb-2">Mancuernas Ajustables</h5>
                                     <p class="text-muted mb-3">Set de 10kg a 40kg.</p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fs-4 fw-bold text-warning">$149.99</span>
+                                        <span class="fs-4 fw-bold text-warning">{{ moneda() }} 149.99</span>
                                         <button class="btn btn-dark btn-sm">Agregar</button>
                                     </div>
                                 </div>
@@ -376,7 +376,7 @@
                                     <h5 class="fw-bold mb-2">Guantes de Entrenamiento</h5>
                                     <p class="text-muted mb-3">Protección y comodidad para tu entrenamiento.</p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fs-4 fw-bold text-warning">$29.99</span>
+                                        <span class="fs-4 fw-bold text-warning">{{ moneda() }} 29.99</span>
                                         <button class="btn btn-dark btn-sm">Agregar</button>
                                     </div>
                                 </div>
@@ -391,7 +391,7 @@
                                     <h5 class="fw-bold mb-2">Shaker Proteína</h5>
                                     <p class="text-muted mb-3">BPA free, capacidad de 700ml.</p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fs-4 fw-bold text-warning">$14.99</span>
+                                        <span class="fs-4 fw-bold text-warning">{{ moneda() }} 14.99</span>
                                         <button class="btn btn-dark btn-sm">Agregar</button>
                                     </div>
                                 </div>
@@ -406,7 +406,7 @@
                                     <h5 class="fw-bold mb-2">Muñequeras</h5>
                                     <p class="text-muted mb-3">Soporte para entrenamiento de fuerza.</p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fs-4 fw-bold text-warning">$19.99</span>
+                                        <span class="fs-4 fw-bold text-warning">{{ moneda() }} 19.99</span>
                                         <button class="btn btn-dark btn-sm">Agregar</button>
                                     </div>
                                 </div>
@@ -421,7 +421,7 @@
                                     <h5 class="fw-bold mb-2">Mancuernas Ajustables</h5>
                                     <p class="text-muted mb-3">Set de 10kg a 40kg.</p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fs-4 fw-bold text-warning">$149.99</span>
+                                        <span class="fs-4 fw-bold text-warning">{{ moneda() }} 149.99</span>
                                         <button class="btn btn-dark btn-sm">Agregar</button>
                                     </div>
                                 </div>
