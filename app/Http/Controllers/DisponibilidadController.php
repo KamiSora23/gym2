@@ -24,7 +24,10 @@ class DisponibilidadController extends Controller
     {
         $perfil = $request->user()->entrenador;
 
-        abort_unless($perfil, 404, 'Tu usuario no está vinculado a un perfil de coach.');
+        if (! $perfil) {
+            return redirect()->route('entrenamiento.index')
+                ->with('info', 'Tu usuario no está vinculado a un perfil de coach. Pide al administrador que te vincule.');
+        }
 
         return redirect()->route('entrenadores.disponibilidad', $perfil);
     }

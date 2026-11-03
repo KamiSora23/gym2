@@ -17,6 +17,31 @@
         <div class="stat-card purple"><div class="stat-title">Clientes nuevos hoy</div><div class="stat-value">{{ $nuevosHoy }}</div><div class="stat-icon"><i class="fas fa-user-plus"></i></div></div>
     </div>
 
+    @if ($pedidosWeb->isNotEmpty())
+        <div class="table-card">
+            <div class="table-header"><h3><i class="fas fa-globe" style="color:var(--primary)"></i> Pedidos web por cobrar <span class="count">({{ $pedidosWeb->count() }})</span></h3></div>
+            <div class="table-scroll">
+                <table class="data-table">
+                    <tbody>
+                        @foreach ($pedidosWeb as $pedido)
+                            <tr>
+                                <td><a href="{{ route('ventas.show', $pedido) }}" style="font-weight:700; color:var(--primary);">{{ $pedido->folio }}</a><div class="muted">{{ $pedido->cliente?->nombre }} · {{ $pedido->created_at->format('d/m H:i') }}</div></td>
+                                <td>{{ \App\Models\Venta::METODOS_PAGO[$pedido->metodo_pago] ?? $pedido->metodo_pago }}</td>
+                                <td class="money-in">{{ dinero($pedido->total) }}</td>
+                                <td class="text-right">
+                                    <form method="POST" action="{{ route('ventas.cobrar', $pedido) }}">
+                                        @csrf @method('PATCH')
+                                        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-check"></i> Cobrar y entregar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('asistencias.store') }}" class="form-card">
         @csrf
         <h3><i class="fas fa-user-check"></i> Check-in rápido</h3>

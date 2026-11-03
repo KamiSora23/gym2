@@ -3,6 +3,7 @@
 use App\Models\Caja;
 use App\Models\CajaSesion;
 use App\Models\Configuracion;
+use App\Models\Plan;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RolesSeeder;
@@ -84,7 +85,10 @@ test('los montos se muestran en soles por defecto y la moneda se puede cambiar',
     expect(dinero(1234.5))->toBe('S/ 1,234.50')->and(dinero(-10))->toBe('-S/ 10.00');
 
     $this->actingAs($this->admin)->get('/dashboard')->assertSee('S/ 0.00');
-    $this->get('/')->assertSee('S/ 29');
+    Plan::create(['id_empresa' => $this->admin->id_empresa, 'nombre' => 'Mensual', 'precio' => 120, 'duracion_dias' => 30, 'activo' => true]);
+    auth()->logout();
+    $this->get('/')->assertSee('S/ 120.00')->assertSee('Mensual');
+    $this->actingAs($this->admin);
 
     $this->actingAs($this->admin)->post('/configuracion', ['nombre_gym' => 'Gym', 'moneda' => '$'])->assertSessionHasNoErrors();
     expect(Configuracion::where('id_empresa', $this->admin->id_empresa)->value('moneda'))->toBe('$');

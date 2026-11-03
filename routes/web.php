@@ -17,9 +17,11 @@ use App\Http\Controllers\EntrenadorController;
 use App\Http\Controllers\GastoController;
 use App\Http\Controllers\MiCuentaController;
 use App\Http\Controllers\NutricionController;
+use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\Plataforma\PlataformaController;
 use App\Http\Controllers\Plataforma\UsuarioGlobalController;
+use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RutinaController;
@@ -32,10 +34,10 @@ use Illuminate\Support\Facades\Route;
 // ---------------------------------------------------------------
 // Sitio público
 // ---------------------------------------------------------------
-Route::view('/', 'index')->name('home');
-Route::view('/shop', 'shop')->name('shop');
-Route::view('/carrito', 'carrito')->name('carrito');
-Route::view('/checkout', 'checkout')->name('checkout');
+Route::get('/', [PortalController::class, 'inicio'])->name('home');
+Route::get('/shop', [PortalController::class, 'tienda'])->name('shop');
+Route::get('/carrito', [PortalController::class, 'carrito'])->name('carrito');
+Route::get('/checkout', [PortalController::class, 'checkout'])->name('checkout');
 
 // ---------------------------------------------------------------
 // Usuarios autenticados
@@ -69,6 +71,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/mi-cuenta', MiCuentaController::class)->name('mi-cuenta');
         Route::post('/mi-cuenta/clases/{clase}', [MiCuentaController::class, 'inscribirse'])->name('mi-cuenta.inscribirse');
         Route::delete('/mi-cuenta/clases/{clase}', [MiCuentaController::class, 'retirarse'])->name('mi-cuenta.retirarse');
+        Route::post('/pedidos', [PedidoController::class, 'store'])->middleware('throttle:10,1')->name('pedidos.store');
+        Route::patch('/mi-cuenta/pedidos/{venta}/cancelar', [PedidoController::class, 'cancelar'])->name('pedidos.cancelar');
     });
 
     // ---------- Panel de la empresa (personal) ----------

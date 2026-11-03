@@ -254,8 +254,16 @@
                         <h5><i class="bi bi-bag"></i> Mis compras</h5>
                         @forelse ($compras as $v)
                             <div class="lista-item">
-                                <span>{{ $v->detalles->pluck('descripcion')->implode(', ') }}<small>{{ $v->fecha->format('d/m/Y') }} · {{ $v->estado === 'pendiente' ? 'Pendiente de pago' : 'Pagado' }}</small></span>
-                                <strong>{{ dinero($v->total) }}</strong>
+                                <span>{{ $v->detalles->pluck('descripcion')->implode(', ') }}<small>{{ $v->folio }} · {{ $v->fecha->format('d/m/Y') }} · {{ $v->estado === 'pendiente' ? 'Pendiente: paga y recoge en recepción' : 'Pagado' }}{{ $v->origen === 'web' ? ' · pedido web' : '' }}</small></span>
+                                <span class="text-end">
+                                    <strong>{{ dinero($v->total) }}</strong>
+                                    @if ($v->origen === 'web' && $v->estado === 'pendiente')
+                                        <form method="POST" action="{{ route('pedidos.cancelar', $v->id_venta) }}" class="mt-1">
+                                            @csrf @method('PATCH')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar</button>
+                                        </form>
+                                    @endif
+                                </span>
                             </div>
                         @empty
                             <p class="text-muted mb-0">Aún no tienes compras.</p>
@@ -265,6 +273,9 @@
             </div>
         @endif
     </main>
+    @if (session('pedido_ok'))
+        <script>localStorage.removeItem('gym_carrito');</script>
+    @endif
 </body>
 
 </html>

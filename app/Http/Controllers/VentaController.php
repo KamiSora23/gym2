@@ -32,7 +32,7 @@ class VentaController extends Controller
         $soloPropias = ! Permisos::puede($request->user(), 'sales.view');
 
         $filtro = fn ($q) => $q->deSucursal()
-            ->when($soloPropias, fn ($w) => $w->where('user_id', $request->user()->id))
+            ->when($soloPropias, fn ($w) => $w->where(fn ($q) => $q->where('user_id', $request->user()->id)->orWhere('origen', 'web')))
             ->when($request->filled('estado'), fn ($w) => $w->where('estado', $request->estado))
             ->when($request->filled('desde'), fn ($w) => $w->whereDate('fecha', '>=', $request->desde))
             ->when($request->filled('hasta'), fn ($w) => $w->whereDate('fecha', '<=', $request->hasta));
@@ -45,7 +45,7 @@ class VentaController extends Controller
             ->withQueryString();
 
         $validas = fn () => Venta::deSucursal()->where('estado', '!=', 'anulado')
-            ->when($soloPropias, fn ($w) => $w->where('user_id', $request->user()->id));
+            ->when($soloPropias, fn ($w) => $w->where(fn ($q) => $q->where('user_id', $request->user()->id)->orWhere('origen', 'web')));
         $semana = [today()->startOfWeek()->toDateString(), today()->endOfWeek()->toDateString()];
         $numSemana = $validas()->whereBetween('fecha', $semana)->count();
         $totalSemana = (float) $validas()->whereBetween('fecha', $semana)->sum('total');
@@ -58,7 +58,7 @@ class VentaController extends Controller
                 'transacciones' => $numSemana,
                 'ticket' => $numSemana ? $totalSemana / $numSemana : 0,
                 'pendientes' => Venta::deSucursal()->where('estado', 'pendiente')
-                    ->when($soloPropias, fn ($w) => $w->where('user_id', $request->user()->id))->count(),
+                    ->when($soloPropias, fn ($w) => $w->where(fn ($q) => $q->where('user_id', $request->user()->id)->orWhere('origen', 'web')))->count(),
             ],
             'soloPropias' => $soloPropias,
             'cajaAbierta' => CajaService::sesionAbierta($request->user()),
@@ -183,7 +183,7 @@ class VentaController extends Controller
     public function show(Request $request, Venta $venta): View
     {
         abort_unless(
-            Permisos::puede($request->user(), 'sales.view') || (int) $venta->user_id === $request->user()->id,
+            Permisos::puede($request->user(), 'sales.view') || (int) $venta->user_id === $request->user()->id || $venta->origen === 'web',
             403,
             'Solo puedes ver tus propias ventas.'
         );
@@ -212,6 +212,17 @@ class VentaController extends Controller
         DB::transaction(function () use ($venta, $sesion) {
             $venta->update(['estado' => 'completado', 'id_sesion' => $sesion->id_sesion]);
             $this->cobrarEnCaja($venta, $sesion, 'cobro');
+
+            // Los pedidos web activan la membresía recién al pagarse.
+            if ($venta->id_cliente && ! $venta->membresias()->exists()) {
+                foreach ($venta->detalles()->whereNotNull('id_plan')->get() as $detalle) {
+                    $plan = Plan::withoutGlobalScopes()->find($detalle->id_plan);
+
+                    if ($plan) {
+                        $this->crearMembresia($venta, $plan);
+                    }
+                }
+            }
         });
 
         Auditoria::registrar('venta.cobrada', "Cobró la venta {$venta->folio} por ".dinero($venta->total), $venta);

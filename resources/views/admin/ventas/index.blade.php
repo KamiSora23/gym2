@@ -48,7 +48,7 @@
                     @forelse ($ventas as $venta)
                         <tr>
                             <td><a href="{{ route('ventas.show', $venta) }}" style="font-weight:700; color:var(--primary);">{{ $venta->folio }}</a></td>
-                            <td>{{ $venta->cliente?->nombre ?? 'Mostrador' }}</td>
+                            <td>{{ $venta->cliente?->nombre ?? 'Mostrador' }} @if ($venta->origen === 'web')<span class="status-badge status-info" title="Pedido del sitio web"><i class="fas fa-globe"></i> Web</span>@endif</td>
                             <td>{{ $venta->fecha->format('d/m/Y') }}</td>
                             <td>{{ $venta->sucursal?->nombre ?? '—' }}</td>
                             <td>{{ \App\Models\Venta::METODOS_PAGO[$venta->metodo_pago] ?? $venta->metodo_pago }}</td>

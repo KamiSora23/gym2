@@ -47,6 +47,9 @@
                 @if ($venta->estado === 'anulado' && $venta->anulada_en)
                     <div class="alert alert-error" style="margin:.75rem 0 0;"><i class="fas fa-ban"></i> Anulada por {{ $venta->anuladaPor?->name ?? '—' }} el {{ $venta->anulada_en->format('d/m/Y H:i') }}: {{ $venta->motivo_anulacion }}</div>
                 @endif
+                @if ($venta->origen === 'web')
+                    <div class="alert alert-info" style="margin:.75rem 0 0;"><i class="fas fa-globe"></i> Pedido del sitio web: el cliente paga y recoge en recepción.{{ $venta->estado === 'pendiente' ? ' La membresía se activa al cobrar.' : '' }}</div>
+                @endif
                 <div class="summary-row" style="margin-top:.75rem;"><span>Método de pago</span><strong>{{ \App\Models\Venta::METODOS_PAGO[$venta->metodo_pago] ?? $venta->metodo_pago }}</strong></div>
                 @foreach ($venta->membresias as $m)
                     <div class="summary-row"><span>Membresía {{ $m->plan?->nombre }}</span><strong>{{ $m->fecha_inicio->format('d/m/Y') }} → {{ $m->fecha_fin->format('d/m/Y') }}</strong></div>

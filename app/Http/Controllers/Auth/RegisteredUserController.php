@@ -67,6 +67,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect('/')->with('success', '¡Bienvenido! Tu cuenta fue creada correctamente.');
+        return redirect()->intended('/')->with('success', '¡Bienvenido! Tu cuenta fue creada correctamente.');
     }
 }

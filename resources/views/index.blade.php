@@ -193,80 +193,31 @@
             </div>
 
             <div class="row g-4 justify-content-center">
-                <!-- Plan Básico -->
-                <div class="col-md-6 col-lg-3 reveal">
-                    <div class="premium-card plan-card p-4 h-100">
-                        <div class="mb-4">
-                            <i class="bi bi-lightning text-primary fs-2"></i>
-                            <h4 class="fw-bold mt-2">Plan Básico</h4>
-                            <div class="price">{{ moneda() }} 29<span class="fs-6 text-muted fw-normal">/mes</span></div>
-                        </div>
-                        <ul class="list-unstyled mb-4 flex-grow-1">
-                            <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i> Acceso a máquinas</li>
-                            <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i> Zona de cardio</li>
-                            <li class="mb-2 text-muted"><i class="bi bi-x me-2"></i> Clases grupales</li>
-                        </ul>
-                        <button class="btn btn-outline-dark-ui w-100 mb-2 btn-sm"
-                            onclick="togglePlanDetails('basico')">Detalles</button>
-                        <button class="btn btn-primary w-100 add-to-cart-plan" data-plan="basico">Agregar al
-                            carrito</button>
-
-                        <div id="details-basico" class="plan-details mt-3 text-muted small">
-                            <hr>
-                            <p>Incluye acceso a vestidores, duchas y locker diario. Horario: 6am - 10pm.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Plan Fitness -->
-                <div class="col-md-6 col-lg-3 reveal">
-                    <div class="premium-card plan-card popular p-4 h-100">
-                        <div class="mb-4">
-                            <i class="bi bi-fire text-primary fs-2"></i>
-                            <h4 class="fw-bold mt-2">Plan Fitness</h4>
-                            <div class="price">{{ moneda() }} 49<span class="fs-6 text-muted fw-normal">/mes</span></div>
-                        </div>
-                        <ul class="list-unstyled mb-4 flex-grow-1">
-                            <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i> Acceso total</li>
-                            <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i> Clases grupales</li>
-                            <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i> App de seguimiento</li>
-                        </ul>
-                        <button class="btn btn-outline-dark-ui w-100 mb-2 btn-sm"
-                            onclick="togglePlanDetails('fitness')">Detalles</button>
-                        <button class="btn btn-primary w-100 add-to-cart-plan" data-plan="fitness">Agregar al
-                            carrito</button>
-
-                        <div id="details-fitness" class="plan-details mt-3 text-muted small">
-                            <hr>
-                            <p>Acceso a todas las clases de Yoga, Zumba y Funcional. Invitado gratis 1 vez al mes.</p>
+                @forelse ($planes as $plan)
+                    @php
+                        $iconos = ['bi-lightning', 'bi-fire', 'bi-trophy', 'bi-gem'];
+                        $destacado = $loop->iteration === 2;
+                    @endphp
+                    <div class="col-md-6 col-lg-3 reveal">
+                        <div class="premium-card plan-card p-4 h-100 {{ $destacado ? 'border border-2 border-primary' : '' }}">
+                            @if ($destacado)<span class="badge bg-primary text-dark mb-2">Más popular</span>@endif
+                            <div class="mb-4">
+                                <i class="bi {{ $iconos[$loop->index % 4] }} text-primary fs-2"></i>
+                                <h4 class="fw-bold mt-2">{{ $plan->nombre }}</h4>
+                                <div class="price">{{ dinero($plan->precio) }}<span class="fs-6 text-muted fw-normal"> / {{ $plan->duracion_dias }} días</span></div>
+                            </div>
+                            <p class="text-muted small flex-grow-1">{{ $plan->descripcion ?: 'Acceso al gimnasio durante '.$plan->duracion_dias.' días.' }}</p>
+                            <button type="button" class="btn btn-primary w-100"
+                                data-agregar data-tipo="plan" data-ref="{{ $plan->id_plan }}"
+                                data-nombre="Membresía {{ $plan->nombre }}" data-precio="{{ (float) $plan->precio }}"
+                                data-img="{{ asset('img/img'.(($loop->index % 3) + 1).'.jpg') }}">
+                                Quiero este plan
+                            </button>
                         </div>
                     </div>
-                </div>
-
-                <!-- Plan Elite -->
-                <div class="col-md-6 col-lg-3 reveal">
-                    <div class="premium-card plan-card p-4 h-100">
-                        <div class="mb-4">
-                            <i class="bi bi-trophy text-primary fs-2"></i>
-                            <h4 class="fw-bold mt-2">Plan Elite</h4>
-                            <div class="price">{{ moneda() }} 89<span class="fs-6 text-muted fw-normal">/mes</span></div>
-                        </div>
-                        <ul class="list-unstyled mb-4 flex-grow-1">
-                            <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i> Todo lo anterior</li>
-                            <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i> Coach personal</li>
-                            <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i> Plan nutricional</li>
-                        </ul>
-                        <button class="btn btn-outline-dark-ui w-100 mb-2 btn-sm"
-                            onclick="togglePlanDetails('elite')">Detalles</button>
-                        <button class="btn btn-primary w-100 add-to-cart-plan" data-plan="elite">Agregar al
-                            carrito</button>
-
-                        <div id="details-elite" class="plan-details mt-3 text-muted small">
-                            <hr>
-                            <p>Sesiones 1-a-1 cada semana, zona VIP y suplementación básica incluida.</p>
-                        </div>
-                    </div>
-                </div>
+                @empty
+                    <p class="text-center text-muted">Pronto publicaremos nuestros planes. Consulta en recepción.</p>
+                @endforelse
             </div>
         </div>
     </section>
@@ -279,39 +230,21 @@
                     rendimiento al siguiente nivel.</p>
             </div>
             <div class="row g-4 justify-content-center">
-                <div class="col-6 col-md-4 col-lg-3 reveal">
-                    <div class="trainer-card">
-                        <div class="trainer-img-wrapper">
-                            <img src="{{ asset('img/img2.jpg') }}" alt="Coach">
-                        </div>
-                        <div class="trainer-info-overlay">
-                            <h6 class="fw-bold mb-0">Carlos M.</h6>
-                            <small class="text-primary">Powerlifting</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-4 col-lg-3 reveal">
-                    <div class="trainer-card">
-                        <div class="trainer-img-wrapper">
-                            <img src="{{ asset('img/img3.jpg') }}" alt="Coach">
-                        </div>
-                        <div class="trainer-info-overlay">
-                            <h6 class="fw-bold mb-0">Elena R.</h6>
-                            <small class="text-primary">Yoga Expert</small>
+                @forelse ($coaches->take(4) as $coach)
+                    <div class="col-6 col-md-4 col-lg-3 reveal">
+                        <div class="trainer-card">
+                            <div class="trainer-img-wrapper">
+                                <img src="{{ asset('img/img'.(($loop->index % 3) + 1).'.jpg') }}" alt="{{ $coach->nombre }}">
+                            </div>
+                            <div class="trainer-info-overlay">
+                                <h6 class="fw-bold mb-0">{{ $coach->nombre }}</h6>
+                                <small class="text-primary">{{ $coach->especialidad ?? 'Entrenamiento' }}</small>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-6 col-md-4 col-lg-3 reveal">
-                    <div class="trainer-card">
-                        <div class="trainer-img-wrapper">
-                            <img src="{{ asset('img/img1.jpg') }}" alt="Coach">
-                        </div>
-                        <div class="trainer-info-overlay">
-                            <h6 class="fw-bold mb-0">Marcus J.</h6>
-                            <small class="text-primary">HIIT Coach</small>
-                        </div>
-                    </div>
-                </div>
+                @empty
+                    <p class="text-center text-muted">Muy pronto presentaremos a nuestro equipo.</p>
+                @endforelse
             </div>
         </div>
     </section>
@@ -321,78 +254,23 @@
             <div class="text-center mb-5 reveal">
                 <h6 class="text-primary fw-bold text-uppercase mb-2">Shop</h6>
                 <h2 class="display-5 fw-bold mb-3">EQUIPAMIENTO <span class="text-primary">PRO</span></h2>
-                <p class="text-muted mx-auto" style="max-width: 600px;">Selección exclusiva de productos premium para
-                    potenciar tu entrenamiento diario.</p>
+                <p class="text-muted mx-auto" style="max-width: 600px;">Selección de productos para potenciar tu
+                    entrenamiento. Resérvalos aquí y recógelos en recepción.</p>
             </div>
             <div class="reveal row g-4">
-                <div class="col-md-6 col-lg-3 fade-in">
-                    <div class="product-card h-100">
-                        <div class="product-image">
-                            <img src="{{ asset('img/img1.jpg') }}" class="img-fluid" alt="Producto">
-                        </div>
-                        <div class="product-info p-4">
-                            <h5 class="fw-bold mb-2">Guantes de Entrenamiento</h5>
-                            <p class="text-muted mb-3">Protección y comodidad para tu entrenamiento.</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fs-4 fw-bold text-warning">{{ moneda() }} 29.99</span>
-                                <button class="btn btn-dark btn-sm">Agregar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-3 fade-in">
-                    <div class="product-card h-100">
-                        <div class="product-image">
-                            <img src="{{ asset('img/img2.jpg') }}" class="img-fluid" alt="Producto">
-                        </div>
-                        <div class="product-info p-4">
-                            <h5 class="fw-bold mb-2">Shaker Proteína</h5>
-                            <p class="text-muted mb-3">BPA free, capacidad de 700ml.</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fs-4 fw-bold text-warning">{{ moneda() }} 14.99</span>
-                                <button class="btn btn-dark btn-sm">Agregar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-3 fade-in">
-                    <div class="product-card h-100">
-                        <div class="product-image">
-                            <img src="{{ asset('img/img3.jpg') }}" class="img-fluid" alt="Producto">
-                        </div>
-                        <div class="product-info p-4">
-                            <h5 class="fw-bold mb-2">Muñequeras</h5>
-                            <p class="text-muted mb-3">Soporte para entrenamiento de fuerza.</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fs-4 fw-bold text-warning">{{ moneda() }} 19.99</span>
-                                <button class="btn btn-dark btn-sm">Agregar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-3 fade-in">
-                    <div class="product-card h-100">
-                        <div class="product-image">
-                            <img src="{{ asset('img/img1.jpg') }}" class="img-fluid" alt="Producto">
-                        </div>
-                        <div class="product-info p-4">
-                            <h5 class="fw-bold mb-2">Mancuernas Ajustables</h5>
-                            <p class="text-muted mb-3">Set de 10kg a 40kg.</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fs-4 fw-bold text-warning">{{ moneda() }} 149.99</span>
-                                <button class="btn btn-dark btn-sm">Agregar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                @forelse ($destacados as $producto)
+                    @include('partials.producto-card', ['producto' => $producto])
+                @empty
+                    <p class="text-center text-muted">Pronto tendremos productos disponibles.</p>
+                @endforelse
             </div>
 
             <div class="text-center mt-5 reveal">
                 <a href="{{ url('/shop') }}" class="btn btn-outline-dark-ui px-5 py-3">Ver catálogo completo</a>
             </div>
+        </div>
+    </section>
 
-    </section>
-    </section>
     <section id="ubicacion" class="py-5 bg-light">
         <div class="container py-5">
             <div class="text-center mb-5 reveal">

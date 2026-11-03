@@ -61,6 +61,7 @@ class DashboardController extends Controller
                 ->orderBy('fecha_fin')->get(),
             'clientes' => Cliente::with('membresiaActiva')->orderBy('nombre')->get(['id_cliente', 'nombre', 'dni']),
             'nuevosHoy' => Cliente::whereDate('created_at', $hoy)->count(),
+            'pedidosWeb' => Venta::deSucursal()->with('cliente')->where('origen', 'web')->where('estado', 'pendiente')->orderBy('id_venta')->get(),
         ]);
     }
 

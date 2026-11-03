@@ -20,7 +20,7 @@ class Venta extends Model
 
     protected $primaryKey = 'id_venta';
 
-    protected $fillable = ['id_empresa', 'id_sucursal', 'id_cliente', 'user_id', 'fecha', 'total', 'estado', 'metodo_pago', 'id_sesion', 'anulada_por', 'anulada_en', 'motivo_anulacion'];
+    protected $fillable = ['id_empresa', 'id_sucursal', 'id_cliente', 'user_id', 'fecha', 'total', 'estado', 'metodo_pago', 'id_sesion', 'anulada_por', 'anulada_en', 'motivo_anulacion', 'origen'];
 
     protected function casts(): array
     {

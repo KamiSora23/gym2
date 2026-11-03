@@ -99,114 +99,87 @@
         </div>
     </header>
 
-    <section class="py-5 bg-light" style="margin-top: 80px;">
+    <section class="py-5 bg-light" style="margin-top: 80px; min-height: 80vh;">
         <div class="container py-5">
+            <div class="mb-4 reveal active">
+                <h2 class="display-6 fw-bold">CONFIRMAR <span class="text-primary">PEDIDO</span></h2>
+                <p class="text-muted mb-0">Reserva ahora, paga y recoge en recepción. No pedimos datos de tarjeta en la web.</p>
+            </div>
+
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    @foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach
+                </div>
+            @endif
+            @if (session('error'))
+                <div class="alert alert-danger">{{ session('error') }}</div>
+            @endif
+
             <div class="row g-4 justify-content-center">
-                
-                <!-- Columna Izquierda: Pasos de Pago -->
                 <div class="col-lg-7">
-                    
-                    <!-- Paso 1: Email -->
-                    <div class="checkout-step active" id="step-1">
-                        <div class="step-header" onclick="goToStep(1)">
-                            <div class="d-flex align-items-center">
-                                <div class="step-number">1</div>
-                                <h6 class="fw-bold mb-0">Información de Contacto</h6>
+                    @guest
+                        <div class="premium-card p-4">
+                            <h5 class="fw-bold mb-2"><i class="bi bi-person-circle text-primary me-2"></i>Inicia sesión para continuar</h5>
+                            <p class="text-muted">Tu carrito se guarda en este dispositivo. Ingresa o crea tu cuenta y vuelve aquí para confirmar el pedido.</p>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a href="{{ route('login') }}" class="btn btn-primary px-4">Iniciar sesión</a>
+                                <a href="{{ route('register') }}" class="btn btn-outline-dark px-4">Crear cuenta</a>
                             </div>
-                            <i class="bi bi-check-lg text-success d-none step-check"></i>
                         </div>
-                        <div class="step-content">
-                            <div class="mb-3">
-                                <label class="form-label">Correo Electrónico</label>
-                                <input type="email" class="form-control" id="checkout-email" placeholder="ejemplo@gym.com">
-                            </div>
-                            <button class="btn btn-primary w-100" onclick="nextStep(2)">Continuar</button>
-                        </div>
-                    </div>
+                    @else
+                        @if (! $esCliente)
+                            <div class="alert alert-warning">Estás con una cuenta del personal. Los pedidos web los hacen los clientes desde su cuenta; para vender usa el panel administrativo.</div>
+                        @else
+                            <form method="POST" action="{{ route('pedidos.store') }}" class="premium-card p-4" id="formPedido">
+                                @csrf
+                                <input type="hidden" name="items" id="pedidoItems" value="[]">
 
-                    <!-- Paso 2: Datos y Pago -->
-                    <div class="checkout-step" id="step-2">
-                        <div class="step-header" onclick="goToStep(2)">
-                            <div class="d-flex align-items-center">
-                                <div class="step-number">2</div>
-                                <h6 class="fw-bold mb-0">Envío y Pago</h6>
-                            </div>
-                            <i class="bi bi-check-lg text-success d-none step-check"></i>
-                        </div>
-                        <div class="step-content">
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-6">
-                                    <label class="form-label">Nombre</label>
-                                    <input type="text" class="form-control" placeholder="Nombre">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Apellido</label>
-                                    <input type="text" class="form-control" placeholder="Apellido">
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Dirección</label>
-                                    <input type="text" class="form-control" placeholder="Calle, Número, Dpto">
-                                </div>
-                            </div>
-                            
-                            <h6 class="fw-bold mb-3 small text-uppercase">Método de Pago</h6>
-                            <div class="row g-2 mb-4">
-                                <div class="col-6">
-                                    <div class="premium-card p-3 text-center border-primary bg-light" style="cursor: pointer;">
-                                        <i class="bi bi-credit-card fs-4 text-primary"></i>
-                                        <div class="small fw-bold">Tarjeta</div>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="premium-card p-3 text-center" style="cursor: pointer;">
-                                        <i class="bi bi-qr-code-scan fs-4 text-muted"></i>
-                                        <div class="small fw-bold">Yape / Plin</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <button class="btn btn-primary w-100" onclick="nextStep(3)">Continuar</button>
-                        </div>
-                    </div>
+                                <h5 class="fw-bold mb-3"><i class="bi bi-person-check text-primary me-2"></i>Tus datos</h5>
+                                <p class="mb-4">{{ Auth::user()->name }} · <span class="text-muted">{{ Auth::user()->email }}</span></p>
 
-                    <!-- Paso 3: Confirmación -->
-                    <div class="checkout-step" id="step-3">
-                        <div class="step-header">
-                            <div class="d-flex align-items-center">
-                                <div class="step-number">3</div>
-                                <h6 class="fw-bold mb-0">Revisión Final</h6>
-                            </div>
-                        </div>
-                        <div class="step-content">
-                            <p class="text-muted small">Al hacer clic en "Finalizar Compra", aceptas nuestros términos y condiciones.</p>
-                            <button class="btn btn-primary w-100 py-3" id="confirmPurchaseBtn">Finalizar Compra</button>
-                        </div>
-                    </div>
+                                <h5 class="fw-bold mb-3"><i class="bi bi-geo-alt text-primary me-2"></i>¿Dónde lo recoges?</h5>
+                                <select name="id_sucursal" class="form-select mb-4" required>
+                                    @foreach ($sucursales as $s)
+                                        <option value="{{ $s->id_sucursal }}" @selected(old('id_sucursal', $sedePreferida) == $s->id_sucursal)>{{ $s->nombre }}{{ $s->direccion ? ' · '.$s->direccion : '' }}</option>
+                                    @endforeach
+                                </select>
 
+                                <h5 class="fw-bold mb-3"><i class="bi bi-wallet2 text-primary me-2"></i>¿Cómo pagarás en recepción?</h5>
+                                <div class="row g-2 mb-4">
+                                    @foreach (['efectivo' => ['bi-cash', 'Efectivo'], 'tarjeta' => ['bi-credit-card', 'Tarjeta'], 'yape' => ['bi-phone', 'Yape / Plin'], 'transferencia' => ['bi-bank', 'Transferencia']] as $valor => [$icono, $texto])
+                                        <div class="col-6 col-md-3">
+                                            <label class="premium-card p-3 text-center d-block h-100" style="cursor:pointer;">
+                                                <input type="radio" name="metodo_pago" value="{{ $valor }}" class="form-check-input mb-2" @checked(old('metodo_pago', 'efectivo') === $valor)>
+                                                <i class="bi {{ $icono }} fs-4 text-primary d-block"></i>
+                                                <span class="small fw-bold">{{ $texto }}</span>
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                <p class="text-muted small">Al confirmar, reservamos los productos por ti. Si eliges una membresía, se activa cuando pagues en recepción. Puedes cancelar el pedido desde «Mi cuenta» mientras esté pendiente.</p>
+                                <button type="submit" class="btn btn-primary w-100 py-3" id="confirmarPedido" disabled>Confirmar pedido</button>
+                            </form>
+                        @endif
+                    @endguest
                 </div>
 
-                <!-- Columna Derecha: Resumen -->
                 <div class="col-lg-4">
                     <div class="premium-card p-4">
-                        <h6 class="fw-bold mb-4">Tu Pedido</h6>
-                        <div id="checkoutItems">
-                            <!-- JS fill -->
-                        </div>
+                        <h6 class="fw-bold mb-4">Tu pedido</h6>
+                        <div id="checkoutItems"></div>
                         <hr>
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Subtotal</span>
-                            <span id="subtotal-step3">{{ moneda() }} 0.00</span>
+                            <span data-checkout-total>{{ dinero(0) }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-4">
-                            <span class="fw-bold">Total</span>
-                            <span class="fw-bold text-primary fs-5" id="total-step3">{{ moneda() }} 0.00</span>
+                            <span class="fw-bold">Total a pagar en recepción</span>
+                            <span class="fw-bold text-primary fs-5" data-checkout-total>{{ dinero(0) }}</span>
                         </div>
-                        <div class="p-3 bg-light rounded-3 text-center small text-muted">
-                            <i class="bi bi-shield-check me-1"></i> Pago 100% seguro
-                        </div>
+                        <a href="{{ url('/carrito') }}" class="btn btn-outline-dark w-100 btn-sm">Editar carrito</a>
                     </div>
                 </div>
-
             </div>
         </div>
     </section>
@@ -219,44 +192,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('js/javaScript.js') }}"></script>
-    <script>
-        // Override JS for checkout page specifically if needed
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.getElementById('checkoutItems');
-            const cart = JSON.parse(localStorage.getItem('gym_cart')) || [];
-            let total = 0;
-            
-            if (container) {
-                container.innerHTML = cart.map(item => {
-                    total += item.price * item.qty;
-                    return `
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="small">
-                                <div class="fw-bold">${item.name}</div>
-                                <div class="text-muted">Cant: ${item.qty}</div>
-                            </div>
-                            <span class="small fw-bold">$${(item.price * item.qty).toFixed(2)}</span>
-                        </div>
-                    `;
-                }).join('');
-                
-                document.getElementById('subtotal-step3').textContent = `${window.GYM_MONEDA || 'S/'} ${total.toFixed(2)}`;
-                document.getElementById('total-step3').textContent = `${window.GYM_MONEDA || 'S/'} ${total.toFixed(2)}`;
-            }
 
-            const confirmBtn = document.getElementById('confirmPurchaseBtn');
-            if (confirmBtn) {
-                confirmBtn.addEventListener('click', () => {
-                    confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Procesando...';
-                    confirmBtn.disabled = true;
-                    setTimeout(() => {
-                        alert('¡Compra realizada con éxito! Recibirás un correo en breve.');
-                        localStorage.removeItem('gym_cart');
-                        window.location.href = '{{ url('/') }}';
-                    }, 2000);
-                });
-            }
-        });
-    </script>
 </body>
 </html>
